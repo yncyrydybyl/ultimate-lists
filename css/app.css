@@ -1,0 +1,28 @@
+#tag-list {
+    padding-bottom: 1em;
+}
+
+.task-list .task:focus {
+    background-color: #eee;
+}
+
+.task-list article h2 {
+    display: inline-block;
+    margin-left: .5em;
+    vertical-align: middle;
+    xmin-width: 15em;
+    padding-right: .5em;
+}
+
+.task-list article .tags {
+    display: inline-block;  
+}
+.task-list article .tag {
+    margin-left: .25em;
+}
+
+.task-list article input[type='checkbox'] {
+    line-height: 1emA;
+    vertical-align:middle;
+    margin-left: .3em;
+}

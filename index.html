@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Crazy Tasks</title>
+    <link rel="stylesheet" href="bulma/css/bulma.min.css">
+    <link rel="stylesheet" href="css/app.css">
+  </head>
+  <body>
+  <section class="section">
+    <div class="container">
+      <h1 class="title">
+        Crazy Tasks
+      </h1>
+      <p class="subtitle">
+        A keyboard-first, tag-based task management web app optimized for high-volume task management
+      </p>
+      <section id="tag-list">
+        <span class="tag">1: prio::high</span>
+      </section>
+      <section id="task-list" class="task-list">
+        <article>
+          <input type="checkbox"><h2>My first task</h2>
+        </article>
+        <article>
+          <input type="checkbox"><h2>My second task</h2>
+        </article>
+      </section>
+    </div>
+  </section>
+    
+  <script id="tags-template" type="x-tmpl-task">
+    {{#tags}}
+      <span class="tag" style="background-color: {{color}}; color: {{tagTextColor}}">{{shortcut}}: {{name}}</span>
+    {{/tags}}
+  </script>
+
+  <script id="task-template" type="x-tmpl-task">
+    {{#tasks}}
+    <article class="task" data-task-id="{{id}}" tabindex="0" draggable="true">
+      <input type="checkbox"><h2>{{ title }}</h2>
+      <div class="tags">{{#tags}}<span class="tag" style="background-color: {{tagColor}}; color: {{tagTextColor}}">{{.}}</span>{{/tags}}</div>
+    </article>
+    {{/tasks}}
+  </script>
+
+  <script src="js/mustache.js-4.2.0.js"></script>
+  <script src="js/app.js"></script>
+  </body>
+</html>
