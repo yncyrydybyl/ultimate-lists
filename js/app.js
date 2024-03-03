@@ -1,11 +1,17 @@
 (function () {
     var tasks = [
-        { title: 'my first task', id: crypto.randomUUID() },
-        { title: 'my 2nd task', id: crypto.randomUUID() }
+        { title: 'my prio high task', id: crypto.randomUUID(), tags: ['prio::high'] },
+        { title: 'my 2nd task', id: crypto.randomUUID(), tags: [] }
     ];
 
     var tags = [
         { name: "prio::high", color: 'red', shortcut: "1"}
+    ];
+
+    var boxes = [
+        { name: "Inbox", tags: [], id: 'default'},
+        { tags: ['prio::high'], id: crypto.randomUUID() },
+        { tags: ['test'], id: crypto.randomUUID() },
     ];
 
     var inputMode = 'v'; // start in view mode
@@ -14,37 +20,44 @@
     window.addEventListener('keydown', (event) => {
         if (inputMode == 'v' && (event.key == "j" || event.key == "ArrowDown")) {
             // handle j event
-            let taskId;
             
-            // find focused task
             const focusedTask = document.querySelector(`.task:focus`);
             if (focusedTask != null) {
-                // get task id of next task
-                let nextTask = getTaskAfterTask(focusedTask);
-                focusTaskWithId(nextTask.id);
+                // focus next task
+                let nextTask = getTaskElAfterTaskEl(focusedTask);
+                if (nextTask) {
+                    nextTask.focus();
+                }
             } else {
                 // no focused task found => focus first task
-                focusTaskWithId(tasks[0]['id']);
+                const firstTask = document.querySelector('.task');
+                if (firstTask) {
+                    firstTask.focus();
+                }
             }
         } else if (inputMode == 'v' && (event.key == 'k' || event.key == 'ArrowUp')) {
             // handle k event
 
-            // find focused task
             const focusedTask = document.querySelector(`.task:focus`);
             if (focusedTask != null) {
-                // get task id of previous task
-                let previousTask = getTaskBeforeTask(focusedTask);
-                focusTaskWithId(previousTask.id);
+                // focus previous task
+                let previousTask = getTaskElBeforeTaskEl(focusedTask);
+                if (previousTask) {
+                    previousTask.focus();
+                }
             } else {
                 // no focused task found => focus last task
-                focusTaskWithId(tasks[tasks.length-1]['id']);
+                const lastTaskEl = getLastTaskEl();
+                if (lastTaskEl) {
+                    lastTaskEl.focus();
+                }
             }
         } else if (inputMode == 'v' && event.key == "i") {
             // handle i event
             event.preventDefault();
             const focusedTask = document.querySelector(`.task:focus`);
             console.log('focusedTask', focusedTask);
-            document.querySelector('.task:focus h2').setAttribute('contentEditable', true);
+            document.querySelector('.task:focus .task-title').setAttribute('contentEditable', true);
             focusTaskTitle(focusedTask);
             inputMode = 'i'; // switch to insert mode
         } else if (inputMode == 'v' && event.code == "Space") {
@@ -69,7 +82,7 @@
         } else if (inputMode == 'i' && event.key == 'Escape') {
             // handle escape key event
             console.log('return to view mode');
-            const focusedTitle = document.querySelector('.task h2:focus');
+            const focusedTitle = document.querySelector('.task .task-title:focus');
             if (focusedTitle != null) {
                 focusedTitle.setAttribute('contentEditable', false);
                 let taskEl = focusedTitle.parentElement;
@@ -130,12 +143,31 @@
 
     // render all tasks and register task-specific key events
     function renderTasks() {
-        console.log("rendering tasks");
-        const template = document.getElementById('task-template').innerHTML;
-        const rendered = Mustache.render(template, {tasks: tasks, "tagColor": tagBackgroundColor, "tagTextColor": tagTextColor});
-        document.getElementById('task-list').innerHTML = rendered;
-        
-        document.querySelectorAll('.task h2').forEach((el) => {
+        console.log("rendering tasks...");
+
+        // create boxes
+        const boxes_template = document.getElementById('boxes-template').innerHTML;
+        const boxes_rendered = Mustache.render(boxes_template, {boxes: boxes});
+        document.getElementById('task-boxes-wrapper').innerHTML = boxes_rendered;
+
+        // render tasks in boxes
+        const task_template = document.getElementById('tasks-template').innerHTML;
+        let tasks_in_boxes = [];
+
+        for (box of boxes) {
+            const box_tasks = tasks.filter(task => box.tags.some(boxtag => task.tags.includes(boxtag)));
+            const rendered = Mustache.render(task_template, {tasks: box_tasks, "tagColor": tagBackgroundColor, "tagTextColor": tagTextColor});
+            document.getElementById('task-list-' + box['id']).innerHTML = rendered;
+            tasks_in_boxes = tasks_in_boxes.concat(box_tasks);
+        }
+
+        // render remaining tasks in default box
+        const remaining_tasks = tasks.filter(t => !tasks_in_boxes.includes(t));
+        const remaining_tasks_rendered = Mustache.render(task_template, {tasks: remaining_tasks, "tagColor": tagBackgroundColor, "tagTextColor": tagTextColor});
+        document.getElementById('task-list-default').innerHTML = remaining_tasks_rendered;
+
+        // register task-specific key events
+        document.querySelectorAll('.task .task-title').forEach((el) => {
             el.addEventListener('keydown', (event) => {
                 if (event.keyCode == 13) { // enter
                     // catch key press of 'enter' key on task titles
@@ -151,19 +183,19 @@
                         focusTaskTitle(newTask.id);
                     }
                 } else if (event.key == "#") {
-                    // handle '#' key on h2: create new tag
+                    // handle '#' key on .task-title: create new tag
                     event.preventDefault();
                     let newTagEl = newTagElement('#');
                     insertNodeAtCursor(newTagEl);
                     setCursorToEnd(newTagEl);
                 } else if (event.key == "Tab" || event.key == " " || event.key == "Spacebar") {
-                    // handle space / tab key on h2: add tag
+                    // handle space / tab key on .task-title: add tag
                     if (event.key == "Tab") {
                         event.preventDefault();
                     }
                     const focusedTaskEl = getFocusedTaskElement();
                     const focusedTaskId = getTaskIdForTaskElement(focusedTaskEl);
-                    const newTagEl = focusedTaskEl.querySelector('h2 .tag');
+                    const newTagEl = focusedTaskEl.querySelector('.task-title .tag');
                     if (newTagEl != null) {
                         // save tag
                         saveAndUpdateTask(focusedTaskEl);
@@ -258,16 +290,16 @@
 
     function getTaskTitleFromTaskElement(taskEl) {
         let title = '';
-        for (var i = 0; i < taskEl.querySelector('h2').childNodes.length; ++i) {
-            if (taskEl.querySelector('h2').childNodes[i].nodeType === Node.TEXT_NODE) {
-                title += taskEl.querySelector('h2').childNodes[i].textContent;
+        for (var i = 0; i < taskEl.querySelector('.task-title').childNodes.length; ++i) {
+            if (taskEl.querySelector('.task-title').childNodes[i].nodeType === Node.TEXT_NODE) {
+                title += taskEl.querySelector('.task-title').childNodes[i].textContent;
             }
         }
         return title.trim();
     }
 
     function saveAndUpdateTask(taskEl) {
-        taskEl.querySelectorAll('h2 .tag').forEach((tagEl) => {
+        taskEl.querySelectorAll('.task-title .tag').forEach((tagEl) => {
             toggleTagForTaskId(getTaskIdForTaskElement(taskEl), tagEl.innerText);
             tagEl.remove();
         });
@@ -317,11 +349,29 @@
 
     // get next task after task with given task id or task element
     // returns task with given task id if no next task exists
-    function getTaskAfterTask(taskElOrTaskId) {
-        if (taskElOrTaskId instanceof HTMLElement) {
-            return getTaskAfterTaskWithId(getTaskIdForTaskElement(taskElOrTaskId));
+    function getTaskElAfterTaskEl(taskEl) {
+        if (!(taskEl instanceof HTMLElement)) {
+            console.error('taskEl is not an instance of HTMLElement', taskEl);
         }
-        return getTaskAfterTaskWithId(taskElOrTaskId);
+
+        if (taskEl.nextElementSibling) {
+            // return next sibling in current task box
+            return taskEl.nextElementSibling;
+        } else {
+            // find next task box
+            let nextParentSibling = taskEl.closest('.task-box').nextElementSibling;
+            while(nextParentSibling) {
+                // find first task in next task box
+                let nextSibling = nextParentSibling.querySelector('.task');
+                if (nextSibling) {
+                    return nextSibling;
+                } else {
+                    // if task box does not contain any task, continue with next task box
+                    nextParentSibling = nextParentSibling.nextElementSibling;
+                }
+            }
+        }
+        return document.querySelector('.task');
     }
 
     // get next task after task with given task id
@@ -339,11 +389,46 @@
     }
 
     // get previous task before task with given task id or task element
-    function getTaskBeforeTask(taskElOrTaskId) {
+    function getTaskElBeforeTaskEl(taskEl) {
+        /*
         if (taskElOrTaskId instanceof HTMLElement) {
             return getTaskBeforeTaskWithId(getTaskIdForTaskElement(taskElOrTaskId));
         }
         return getTaskBeforeTaskWithId(taskElOrTaskId);
+        */
+        console.log("search prev el", taskEl);
+        if (taskEl.previousElementSibling) {
+            // return previous sibling in current task box
+            return taskEl.previousElementSibling;
+        } else {
+            // find previous task box
+            let prevParentSibling = taskEl.closest('.task-box').previousElementSibling;
+            console.log('ppS', prevParentSibling)
+            while(prevParentSibling){
+                // find last task in previous task box
+                let prevSibling = prevParentSibling.querySelector('.task:last-of-type');
+                if (prevSibling) {
+                    console.log('returen prev', prevSibling)
+                    return prevSibling;
+                } else {
+                    // if task box does not contain any task, continue with previous task box
+                    prevParentSibling = prevParentSibling.previousElementSibling;
+                }
+            }
+        }
+        // return last task
+        return getLastTaskEl();
+    }
+
+    function getLastTaskEl() {
+        const taskBoxes = document.querySelectorAll('.task-box');
+        for (box of Array.from(taskBoxes).reverse()) {
+            let taskEl = box.querySelector('.task:last-of-type');
+            if (taskEl) {
+                return taskEl;
+            }
+        }
+        return document.querySelector('.task');
     }
 
     // returns task with given task id if no previous task exists
@@ -395,8 +480,7 @@
         if (typeof taskId != "string") {
             throw "taskId not string"
         }
-        const el = document.querySelector(`.task[data-task-id='${taskId}'] h2`);
-        console.log('h2', el);
+        const el = document.querySelector(`.task[data-task-id='${taskId}'] .task-title`);
         el.setAttribute('contentEditable', true);
         r = document.createRange();
         r.selectNodeContents(el);

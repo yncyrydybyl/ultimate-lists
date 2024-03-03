@@ -16,30 +16,30 @@
       <p class="subtitle">
         A keyboard-first, tag-based task management web app optimized for high-volume task management
       </p>
-      <section id="tag-list">
-        <span class="tag">1: prio::high</span>
-      </section>
-      <section id="task-list" class="task-list">
-        <article>
-          <input type="checkbox"><h2>My first task</h2>
-        </article>
-        <article>
-          <input type="checkbox"><h2>My second task</h2>
-        </article>
-      </section>
+      <section id="tag-list"></section>
+      <div id="task-boxes-wrapper"></div>
     </div>
   </section>
     
+  <script id="boxes-template" type="x-tmpl-task">
+    {{#boxes}}
+    <section class="task-box">
+      <h2>{{name}}{{#tags}}<span class="tag">{{.}}</span>{{/tags}}</h2>
+      <section id="task-list-{{id}}" class="task-list"></section>
+    </section>
+    {{/boxes}}
+  </script>
+
   <script id="tags-template" type="x-tmpl-task">
     {{#tags}}
       <span class="tag" style="background-color: {{color}}; color: {{tagTextColor}}">{{shortcut}}: {{name}}</span>
     {{/tags}}
   </script>
 
-  <script id="task-template" type="x-tmpl-task">
+  <script id="tasks-template" type="x-tmpl-task">
     {{#tasks}}
     <article class="task" data-task-id="{{id}}" tabindex="0" draggable="true">
-      <input type="checkbox"><h2>{{ title }}</h2>
+      <input type="checkbox"><h3 class="task-title">{{ title }}</h3>
       <div class="tags">{{#tags}}<span class="tag" style="background-color: {{tagColor}}; color: {{tagTextColor}}">{{.}}</span>{{/tags}}</div>
     </article>
     {{/tasks}}

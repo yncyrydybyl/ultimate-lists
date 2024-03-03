@@ -1,3 +1,14 @@
+.task-box {
+    box-shadow: 0 0 .2em gray;
+    border-radius: .4em;
+    margin-bottom: 2em;
+    padding: .25em;
+}
+
+.task-box h2 {
+    font-weight: bold;
+}
+
 #tag-list {
     padding-bottom: 1em;
 }
@@ -6,7 +17,7 @@
     background-color: #eee;
 }
 
-.task-list article h2 {
+.task-list article .task-title {
     display: inline-block;
     margin-left: .5em;
     vertical-align: middle;
