@@ -9,6 +9,10 @@
     font-weight: bold;
 }
 
+.tag-list-wrapper {
+    margin-bottom: 2em;
+}
+
 #tag-list {
     padding-bottom: 1em;
 }
@@ -21,7 +25,6 @@
     display: inline-block;
     margin-left: .5em;
     vertical-align: middle;
-    xmin-width: 15em;
     padding-right: .5em;
 }
 
@@ -33,7 +36,6 @@
 }
 
 .task-list article input[type='checkbox'] {
-    line-height: 1emA;
     vertical-align:middle;
     margin-left: .3em;
 }
