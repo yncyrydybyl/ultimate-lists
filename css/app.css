@@ -14,6 +14,13 @@
     margin-bottom: 2em;
 }
 
+.tag-list-wrapper input {
+    border-radius: .1em;
+    border: 1px solid #ccc;
+    line-height: 1.5em;
+    vertical-align: middle;
+}
+
 #tag-list {
     padding-bottom: 1em;
 }
