@@ -1,6 +1,6 @@
-# Crazy Tasks
+# Ultimate lists
 
-A keyboard-first, tag-based task management web app optimized for high-volume task management
+A keyboard-first, tag-based list and task management web app optimized for high-volume task management
 
 ## Motivation
 - tried several task management tools but always ended up with simple text files in the end
