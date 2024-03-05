@@ -24,7 +24,7 @@
   <script id="boxes-template" type="x-tmpl-task">
     {{#boxes}}
     <section class="task-box">
-      <h2>{{name}}{{#tags}}<span class="tag">{{.}}</span>{{/tags}}</h2>
+      <h2>{{name}}{{#tags}}<span style="background-color: {{tagColor}}; color: {{tagTextColor}}" class="tag">{{.}}</span>{{/tags}}</h2>
       <section id="task-list-{{id}}" class="task-list"></section>
     </section>
     {{/boxes}}

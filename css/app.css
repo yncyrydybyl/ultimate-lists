@@ -6,7 +6,8 @@
 }
 
 .task-box h2 {
-    font-weight: bold;
+    font-weight: 500;
+    padding-bottom: .3em;
 }
 
 .tag-list-wrapper {

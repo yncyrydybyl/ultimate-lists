@@ -184,7 +184,7 @@
     // render predefined tags bar
     function renderTags() {
         const template = document.getElementById('tags-template').innerHTML;
-        const rendered = Mustache.render(template, {tags: tags, "tagColor": getTagBackgroundColor, "tagTextColor": getTagTextColor});
+        const rendered = Mustache.render(template, {tags: tags, "tagTextColor": getTagTextColor});
         document.getElementById('tag-list').innerHTML = rendered;
     }
     renderTags();
@@ -195,7 +195,7 @@
 
         // create boxes
         const boxes_template = document.getElementById('boxes-template').innerHTML;
-        const boxes_rendered = Mustache.render(boxes_template, {boxes: boxes});
+        const boxes_rendered = Mustache.render(boxes_template, {boxes: boxes, "tagColor": getTagBackgroundColor, "tagTextColor": getTagTextColor});
         document.getElementById('task-boxes-wrapper').innerHTML = boxes_rendered;
 
         // render tasks in boxes
