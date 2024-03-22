@@ -186,6 +186,14 @@
         const template = document.getElementById('tags-template').innerHTML;
         const rendered = Mustache.render(template, {tags: tags, "tagTextColor": getTagTextColor});
         document.getElementById('tag-list').innerHTML = rendered;
+
+        // register click-event for delete buttons
+        document.querySelectorAll('#tag-list .tag .delete').forEach((el) => {
+            el.addEventListener('click', (event) => {
+                deleteTag(event.target.parentElement.dataset.tagName);
+                renderTags();
+            })
+        } );
     }
     renderTags();
 
@@ -322,6 +330,15 @@
             id: taskId,
             tags: []
         }
+    }
+
+    function deleteTag(tagName) {
+        for (let [index, tag] of tags.entries()) {
+            if (tag.name == tagName) {
+                tags.splice(index, 1);
+            }
+        }
+
     }
 
     function setTaskTitle(taskId, title) {

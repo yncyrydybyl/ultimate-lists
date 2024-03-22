@@ -25,6 +25,10 @@
     padding-bottom: 1em;
 }
 
+#tag-list .tag .delete {
+    margin-left: .5rem;
+}
+
 .task-list .task:focus {
     background-color: #eee;
 }
