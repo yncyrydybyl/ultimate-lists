@@ -32,7 +32,10 @@
 
   <script id="tags-template" type="x-tmpl-task">
     {{#tags}}
-      <span class="tag" data-tag-name="{{name}}" style="background-color: {{color}}; color: {{tagTextColor}}">{{shortcut}}: {{name}} <button class="delete is-small"></button></span>
+      <label for="color-{{name}}">
+        <span class="tag" data-tag-name="{{name}}" style="background-color: {{color}}; color: {{tagTextColor}}">{{shortcut}}: {{name}} <button class="delete is-small"></button></span>
+        <input class="color-input" id="color-{{name}}" type="color" value="">
+      </label>
     {{/tags}}
   </script>
 

@@ -26,7 +26,7 @@
             if (event.target instanceof HTMLInputElement) {
                 return;
             }
-            
+
             const focusedTask = document.querySelector(`.task:focus`);
             if (focusedTask != null) {
                 // focus next task
@@ -116,7 +116,7 @@
             console.log("ctrl", event.key);
             const focusedTaskEl = getFocusedTaskElement();
             const taskId = getTaskIdForTaskElement(focusedTaskEl);
-           
+
             // find predefined tag for shortcut event
             for (let tag of tags) {
                 if (tag.shortcut == event.key) {
@@ -132,6 +132,7 @@
         }
     });
 
+    // handle enter key on new tag input
     document.getElementById('new-tag-input').addEventListener('keydown', (event) => {
         if (event.key == 'Enter') {
             tags.push({"name": event.target.value, shortcut: tags.length + 1 });
@@ -140,47 +141,6 @@
         }
     });
 
-    // helper function for mustache to get tag background color
-    function getTagBackgroundColor () {
-        for (let tag of tags) {
-            if (tag.name == this && 'color' in tag) {
-                return tag.color;
-            }
-        }
-    }
-
-    // helper function for mustache to get tag text color
-    function getTagTextColor () {
-        // when used for tags-template, 'this' references a tag object
-        if ('color' in this) {
-            return pickTextColorBasedOnBackgroundColor(this.color);
-        }
-
-        // when used for tasks-template, 'this' references a tag name
-        for (let tag of tags) {
-            if (tag.name == this && 'color' in tag) {
-                return pickTextColorBasedOnBackgroundColor(tag.color);
-            }
-        }
-
-        return "black";
-    }
-
-    // helper function to determine whether to use white or black as text color depending on given background color
-    // based on https://stackoverflow.com/a/3943023
-    function pickTextColorBasedOnBackgroundColor(backgroundColor) {
-        // if given color is not in hex format, convert it via canvas
-        if (!backgroundColor.startsWith('#')) {
-            var ctx = document.createElement('canvas').getContext('2d');
-            ctx.fillStyle = backgroundColor;
-            backgroundColor = ctx.fillStyle;
-        }
-        var r = parseInt(backgroundColor.substring(1, 3), 16); // hex to r
-        var g = parseInt(backgroundColor.substring(3, 5), 16); // hex to g
-        var b = parseInt(backgroundColor.substring(5, 7), 16); // hex to b
-        return (((r * 0.299) + (g * 0.587) + (b * 0.114)) > 186) ?  'black' : 'white';
-    }
-    
     // render predefined tags bar
     function renderTags() {
         const template = document.getElementById('tags-template').innerHTML;
@@ -191,6 +151,16 @@
         document.querySelectorAll('#tag-list .tag .delete').forEach((el) => {
             el.addEventListener('click', (event) => {
                 deleteTag(event.target.parentElement.dataset.tagName);
+                renderTags();
+            })
+        });
+
+        // set value and register change events for color input
+        document.querySelectorAll('#tag-list .color-input').forEach((el) => {
+            el.value = rgba2hex(window.getComputedStyle(el.parentElement.querySelector('.tag')).backgroundColor);
+
+            el.addEventListener('change', (event) => {
+                setTagColor(event.target.parentElement.querySelector('.tag').dataset.tagName, event.target.value);
                 renderTags();
             })
         } );
@@ -305,7 +275,7 @@
                 const taskId = getTaskIdForTaskElement(event.target.parentElement);
                 renderTasks();
                 focusTaskWithId(taskId);
-                
+
                 // delete task if title is empty
                 if (getTaskTitleFromTaskElement(event.target.parentElement) == '') {
                     const taskId = getTaskIdForTaskElement(event.target.parentElement);
@@ -323,7 +293,7 @@
             })
         });
     }
-   
+
     function createTask(taskId) {
         return {
             title: '',
@@ -338,7 +308,14 @@
                 tags.splice(index, 1);
             }
         }
+    }
 
+    function setTagColor(tagName, color) {
+        for (let [index, tag] of tags.entries()) {
+            if (tag.name == tagName) {
+                tag.color = color;
+            }
+        }
     }
 
     function setTaskTitle(taskId, title) {
@@ -371,7 +348,7 @@
             tagEl.remove();
         });
     }
-    
+
     function toggleTagForTaskId(taskId, tagName) {
         tagName = tagName.replace('#', '').trim();
         for (let task of tasks) {
@@ -553,6 +530,52 @@
         el.classList.add('tag');
         el.innerText = tagText;
         return el;
+    }
+
+    // helper function for mustache to get tag background color
+    function getTagBackgroundColor () {
+        for (let tag of tags) {
+            if (tag.name == this && 'color' in tag) {
+                return tag.color;
+            }
+        }
+    }
+
+    // helper function for mustache to get tag text color
+    function getTagTextColor () {
+        // when used for tags-template, 'this' references a tag object
+        if ('color' in this) {
+            return pickTextColorBasedOnBackgroundColor(this.color);
+        }
+
+        // when used for tasks-template, 'this' references a tag name
+        for (let tag of tags) {
+            if (tag.name == this && 'color' in tag) {
+                return pickTextColorBasedOnBackgroundColor(tag.color);
+            }
+        }
+
+        return "black";
+    }
+
+    // helper function to determine whether to use white or black as text color depending on given background color
+    // based on https://stackoverflow.com/a/3943023
+    function pickTextColorBasedOnBackgroundColor(backgroundColor) {
+        // if given color is not in hex format, convert it via canvas
+        if (!backgroundColor.startsWith('#')) {
+            var ctx = document.createElement('canvas').getContext('2d');
+            ctx.fillStyle = backgroundColor;
+            backgroundColor = ctx.fillStyle;
+        }
+        var r = parseInt(backgroundColor.substring(1, 3), 16); // hex to r
+        var g = parseInt(backgroundColor.substring(3, 5), 16); // hex to g
+        var b = parseInt(backgroundColor.substring(5, 7), 16); // hex to b
+        return (((r * 0.299) + (g * 0.587) + (b * 0.114)) > 186) ?  'black' : 'white';
+    }
+    // see https://stackoverflow.com/a/3627747
+
+    function rgba2hex(rgba) {
+        return `#${rgba.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*(\d+\.{0,1}\d*))?\)$/).slice(1).map((n, i) => (i === 3 ? Math.round(parseFloat(n) * 255) : parseFloat(n)).toString(16).padStart(2, '0').replace('NaN', '')).join('')}`;
     }
 
     // init

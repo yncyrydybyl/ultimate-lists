@@ -25,8 +25,16 @@
     padding-bottom: 1em;
 }
 
+#tag-list .tag {
+    cursor: pointer;
+}
+
 #tag-list .tag .delete {
     margin-left: .5rem;
+}
+
+#tag-list .color-input {
+    display: none;
 }
 
 .task-list .task:focus {
