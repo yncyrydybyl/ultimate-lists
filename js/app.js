@@ -61,6 +61,28 @@
                     lastTaskEl.focus();
                 }
             }
+        } else if (inputMode == 'v' && event.key == "K") {
+            // move task up
+            const focusedTask = document.querySelector(`.task:focus`);
+            const taskId = getTaskIdForTaskElement(focusedTask);
+            if (focusedTask != null) {
+                if (focusedTask.previousElementSibling != null) {
+                    focusedTask.previousElementSibling.before(focusedTask);
+                }
+                focusTaskWithId(taskId);
+                saveTaskPositions();
+            }
+        } else if (inputMode == 'v' && event.key == "J") {
+            // move task down
+            const focusedTask = document.querySelector(`.task:focus`);
+            const taskId = getTaskIdForTaskElement(focusedTask);
+            if (focusedTask != null) {
+                if (focusedTask.nextElementSibling != null) {
+                    focusedTask.nextElementSibling.after(focusedTask);
+                }
+                focusTaskWithId(taskId);
+                saveTaskPositions();
+            }
         } else if (inputMode == 'v' && event.key == "i") {
             // handle i event
             if (event.target instanceof HTMLInputElement) {
@@ -105,7 +127,7 @@
                 focusedTitle.setAttribute('contentEditable', false);
                 let taskEl = focusedTitle.parentElement;
                 const taskId = getTaskIdForTaskElement(taskEl);
-                saveAndUpdateTagsForTask(taskEl);
+                saveNewTagsForTask(taskEl);
                 window.setTimeout(function() {
                     focusTaskWithId(taskId);
                 }, 30);
@@ -248,17 +270,27 @@
         const task_template = document.getElementById('tasks-template').innerHTML;
         let tasks_in_boxes = [];
 
+        // sort tasks by position inside box with given id
+        function sortTasksByPosition(tasks, boxId) {
+            return tasks.sort((a,b) => {
+                if (!("boxPositions" in a)) return 1;
+                if (!("boxPositions" in b)) return -1;
+                return a["boxPositions"][boxId] - b["boxPositions"][boxId];
+            });
+        }
+
         for (box of boxes) {
             if (box.id == 'default') continue;
             const box_tasks = tasks.filter(task => task.tags.length > 0 && box.tags.every(boxtag => task.tags.includes(boxtag)));
-            const rendered = Mustache.render(task_template, {tasks: box_tasks, "tagColor": getTagBackgroundColor, "tagTextColor": getTagTextColor});
+            const rendered = Mustache.render(task_template, {tasks: sortTasksByPosition(box_tasks, box.id), "tagColor": getTagBackgroundColor, "tagTextColor": getTagTextColor});
             document.getElementById('task-list-' + box['id']).innerHTML = rendered;
             tasks_in_boxes = tasks_in_boxes.concat(box_tasks);
         }
 
         // render remaining tasks in default box
         const remaining_tasks = tasks.filter(t => !tasks_in_boxes.includes(t));
-        const remaining_tasks_rendered = Mustache.render(task_template, {tasks: remaining_tasks, "tagColor": getTagBackgroundColor, "tagTextColor": getTagTextColor});
+        console.log(sortTasksByPosition(remaining_tasks, 'default'))
+        const remaining_tasks_rendered = Mustache.render(task_template, {tasks: sortTasksByPosition(remaining_tasks, 'default'), "tagColor": getTagBackgroundColor, "tagTextColor": getTagTextColor});
         document.getElementById('task-list-default').innerHTML = remaining_tasks_rendered;
 
         // register task-specific key events
@@ -273,7 +305,7 @@
                     if (getTaskTitleFromTaskElement(focusedTaskEl) != '') {
                         const taskId = getTaskIdForTaskElement(focusedTaskEl);
                         let newTask = newTaskAfterTask(taskId);
-                        saveAndUpdateTagsForTask(focusedTaskEl);
+                        saveNewTagsForTask(focusedTaskEl);
                         renderTasks();
                         focusTaskTitle(newTask.id);
                     }
@@ -292,7 +324,7 @@
                     const focusedTaskId = getTaskIdForTaskElement(focusedTaskEl);
                     if (focusedTaskEl.querySelector('.task-title .tag')) {
                         // when new tag is being created, save tag
-                        saveAndUpdateTagsForTask(focusedTaskEl);
+                        saveNewTagsForTask(focusedTaskEl);
                         renderTasks();
                         focusTaskTitleOfTaskWithId(focusedTaskId);
                     } else if (event.key == "Tab" && getTaskTitleFromTaskElement(focusedTaskEl) != '') {
@@ -338,7 +370,7 @@
                 inputMode = 'v';
 
                 // update data model of task that lost focus
-                saveAndUpdateTagsForTask(event.target.parentElement);
+                saveNewTagsForTask(event.target.parentElement);
 
                 // re-render tasks
                 const taskId = getTaskIdForTaskElement(event.target.parentElement);
@@ -363,6 +395,8 @@
         });
     }
 
+    // ----- task functions -----
+
     function createTask(taskId) {
         return {
             title: '',
@@ -371,20 +405,14 @@
         }
     }
 
-    function deleteTag(tagName) {
-        for (let [index, tag] of tags.entries()) {
-            if (tag.name == tagName) {
-                tags.splice(index, 1);
+    function getTaskTitleFromTaskElement(taskEl) {
+        let title = '';
+        for (var i = 0; i < taskEl.querySelector('.task-title').childNodes.length; ++i) {
+            if (taskEl.querySelector('.task-title').childNodes[i].nodeType === Node.TEXT_NODE) {
+                title += taskEl.querySelector('.task-title').childNodes[i].textContent;
             }
         }
-    }
-
-    function setTagColor(tagName, color) {
-        for (let [index, tag] of tags.entries()) {
-            if (tag.name == tagName) {
-                tag.color = color;
-            }
-        }
+        return title.trim();
     }
 
     function setTaskTitle(taskId, title) {
@@ -401,20 +429,28 @@
         setTaskTitle(taskId, title);
     }
 
-    function getTaskTitleFromTaskElement(taskEl) {
-        let title = '';
-        for (var i = 0; i < taskEl.querySelector('.task-title').childNodes.length; ++i) {
-            if (taskEl.querySelector('.task-title').childNodes[i].nodeType === Node.TEXT_NODE) {
-                title += taskEl.querySelector('.task-title').childNodes[i].textContent;
-            }
-        }
-        return title.trim();
-    }
-
-    function saveAndUpdateTagsForTask(taskEl) {
+    function saveNewTagsForTask(taskEl) {
         taskEl.querySelectorAll('.task-title .tag').forEach((tagEl) => {
             toggleTagForTaskId(getTaskIdForTaskElement(taskEl), tagEl.innerText);
             tagEl.remove();
+        });
+    }
+
+    // save positions (order) of task elements in boxes
+    function saveTaskPositions() {
+        // clear all task positions
+        tasks.forEach(t => delete t.boxPositions);
+
+        // save task positions for all tasks
+        document.querySelectorAll('.task').forEach(taskEl => {
+            const taskId = getTaskIdForTaskElement(taskEl);
+            const boxId = taskEl.closest('.task-box').dataset.taskBoxId;
+            for (let task of tasks) {
+                if (task.id == taskId) {
+                    if (!("boxPositions" in task)) task["boxPositions"] = {};
+                    task["boxPositions"][boxId] = Array.from(taskEl.closest('.task-list').children).indexOf(taskEl);
+                }
+            }
         });
     }
 
@@ -594,11 +630,29 @@
         s.addRange(r);
     }
 
+    // ----- tag functions -----
+
+    function setTagColor(tagName, color) {
+        for (let [index, tag] of tags.entries()) {
+            if (tag.name == tagName) {
+                tag.color = color;
+            }
+        }
+    }
+
     function newTagElement(tagText) {
         const el = document.createElement('span');
         el.classList.add('tag');
         el.innerText = tagText;
         return el;
+    }
+
+    function deleteTag(tagName) {
+        for (let [index, tag] of tags.entries()) {
+            if (tag.name == tagName) {
+                tags.splice(index, 1);
+            }
+        }
     }
 
     // helper function for mustache to get tag background color
@@ -631,6 +685,8 @@
     function getTagShortCut() {
         return tags.map(t => t.name).indexOf(this["name"]) + 1;
     }
+
+    // ----- color functions -----
 
     // helper function to determine whether to use white or black as text color depending on given background color
     // based on https://stackoverflow.com/a/3943023
