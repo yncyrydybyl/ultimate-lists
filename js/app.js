@@ -13,7 +13,7 @@
 
     var boxes = [
         { name: "Inbox", tags: [], id: 'default'},
-        { tags: ['today'], id: crypto.randomUUID() },
+        { tags: ['today', 'prio::high'], id: crypto.randomUUID() },
         { tags: ['prio::high'], id: crypto.randomUUID() },
     ];
 
@@ -182,7 +182,8 @@
         let tasks_in_boxes = [];
 
         for (box of boxes) {
-            const box_tasks = tasks.filter(task => box.tags.some(boxtag => task.tags.includes(boxtag)));
+            if (box.id == 'default') continue;
+            const box_tasks = tasks.filter(task => task.tags.length > 0 && box.tags.every(boxtag => task.tags.includes(boxtag)));
             const rendered = Mustache.render(task_template, {tasks: box_tasks, "tagColor": getTagBackgroundColor, "tagTextColor": getTagTextColor});
             document.getElementById('task-list-' + box['id']).innerHTML = rendered;
             tasks_in_boxes = tasks_in_boxes.concat(box_tasks);

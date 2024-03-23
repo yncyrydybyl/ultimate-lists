@@ -37,6 +37,10 @@
     display: none;
 }
 
+.task-box .task-box-heading .tag {
+    margin-right: .2rem;
+}
+
 .task-list .task:focus {
     background-color: #eee;
 }
@@ -49,7 +53,7 @@
 }
 
 .task-list article .tags {
-    display: inline-block;  
+    display: inline-block;
 }
 .task-list article .tag {
     margin-left: .25em;
