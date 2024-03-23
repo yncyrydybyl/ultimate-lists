@@ -162,6 +162,7 @@
             el.addEventListener('change', (event) => {
                 setTagColor(event.target.parentElement.querySelector('.tag').dataset.tagName, event.target.value);
                 renderTags();
+                renderTasks(); // re-render tags in tasks
             })
         } );
     }
