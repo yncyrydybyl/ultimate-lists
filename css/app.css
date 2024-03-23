@@ -25,6 +25,27 @@
     padding-bottom: 1em;
 }
 
+#tag-list .tag-label {
+    transition-duration: .25s;
+    transition-timing-function: linear;
+    margin-left: .1em;
+    margin-right: .1em;
+}
+
+#tag-list .tag-label.dragged {
+    display: none;
+}
+
+#tag-list .tag-label.drag-over-left {
+    margin-left: 5em;
+    transition-duration: .25s;
+}
+
+#tag-list .tag-label.drag-over-right {
+    margin-right: 5em;
+    transition-duration: .25s;
+}
+
 #tag-list .tag {
     cursor: pointer;
 }

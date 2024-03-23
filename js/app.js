@@ -5,10 +5,10 @@
     ];
 
     var tags = [
-        { name: "prio::high", color: 'crimson', shortcut: 1 },
-        { name: "today", color: 'green', shortcut: 2 },
-        { name: "focus", color: 'gold', shortcut: 3 },
-        { name: "orga", color: 'darkcyan', shortcut: 4 },
+        { name: "prio::high", color: 'crimson' },
+        { name: "today", color: 'green' },
+        { name: "focus", color: 'gold' },
+        { name: "orga", color: 'darkcyan' },
     ];
 
     var boxes = [
@@ -117,12 +117,16 @@
             const focusedTaskEl = getFocusedTaskElement();
             const taskId = getTaskIdForTaskElement(focusedTaskEl);
 
-            // find predefined tag for shortcut event
-            for (let tag of tags) {
-                if (tag.shortcut == event.key) {
-                    toggleTagForTaskId(taskId, tag.name);
-                }
+            const tagIndex = parseInt(event.key) == 0 ? 9 : parseInt(event.key) - 1;
+
+            if (tagIndex >= tags.length) {
+                console.log(`no shortcut defined for ctrl+${event.key}`);
+                return;
             }
+
+            // toggle predefined tag for shortcut event
+            toggleTagForTaskId(taskId, tags[tagIndex].name)
+
             renderTasks();
             if (inputMode == 'v') {
                 focusTaskWithId(taskId);
@@ -135,7 +139,7 @@
     // handle enter key on new tag input
     document.getElementById('new-tag-input').addEventListener('keydown', (event) => {
         if (event.key == 'Enter') {
-            tags.push({"name": event.target.value, shortcut: tags.length + 1 });
+            tags.push({"name": event.target.value });
             event.target.value = '';
             renderTags();
         }
@@ -144,7 +148,7 @@
     // render predefined tags bar
     function renderTags() {
         const template = document.getElementById('tags-template').innerHTML;
-        const rendered = Mustache.render(template, {tags: tags, "tagTextColor": getTagTextColor});
+        const rendered = Mustache.render(template, {tags: tags, "tagTextColor": getTagTextColor, "shortcut": getTagShortCut});
         document.getElementById('tag-list').innerHTML = rendered;
 
         // register click-event for delete buttons
@@ -164,7 +168,70 @@
                 renderTags();
                 renderTasks(); // re-render tags in tasks
             })
-        } );
+        });
+
+        // register drag and drop handlers
+        document.querySelector('#tag-list').addEventListener('dragover', event => {
+            event.preventDefault();
+        });
+
+        document.querySelectorAll('#tag-list .tag-label').forEach((el) => {
+            el.addEventListener('drag', event => {
+                event.target.closest('.tag-label').classList.add('dragged');
+            });
+
+            el.addEventListener('dragend', event => {
+                event.preventDefault();
+
+                // remove dragged tag from tags list
+                const draggedTagIndex = tags.map(t => t.name).indexOf(event.target.querySelector('.tag').dataset.tagName);
+                const draggedTag = tags[draggedTagIndex];
+                tags.splice(draggedTagIndex, 1);
+
+                // find indices of drag over elements
+                let dragOverTagLeftIndex = -1, dragOverTagRightIndex = -1;
+                const dragOverLeftTagEl = document.querySelector('#tag-list .tag-label.drag-over-left .tag');
+                const dragOverRightTagEl = document.querySelector('#tag-list .tag-label.drag-over-right .tag');
+                if (dragOverLeftTagEl) dragOverTagLeftIndex = tags.map(t => t.name).indexOf(dragOverLeftTagEl.dataset.tagName);
+                if (dragOverRightTagEl) dragOverTagRightIndex = tags.map(t => t.name).indexOf(dragOverRightTagEl.dataset.tagName);
+
+                // re-add dragged tag...
+                if (dragOverTagLeftIndex != -1) {
+                    // ...left to drag over element
+                    tags.splice(dragOverTagLeftIndex, 0, draggedTag);
+                } else if (dragOverTagRightIndex != -1) {
+                    // ... right to drag over element
+                    tags.splice(dragOverTagRightIndex + 1, 0, draggedTag);
+                } else {
+                    // ... to original position
+                    tags.splice(draggedTagIndex, 0, draggedTag);
+                }
+
+                renderTags();
+            });
+
+            el.addEventListener('dragover', event => {
+                event.preventDefault();
+                document.querySelectorAll('#tag-list .tag-label').forEach(el => {
+                    el.classList.remove('drag-over-left');
+                    el.classList.remove('drag-over-right');
+                });
+
+                if (!(event.target instanceof HTMLElement)) return;
+                const dragOverTagLabel = event.target.closest('.tag-label');
+
+                const mouseXCoordinateInDragOverTarget = event.clientX - dragOverTagLabel.getBoundingClientRect().left;
+                if (dragOverTagLabel.offsetWidth / 2 > mouseXCoordinateInDragOverTarget) {
+                    // mouse hovering over left side of target
+                    dragOverTagLabel.classList.add('drag-over-left');
+                } else {
+                    // mouse hovering over right side of target
+                    dragOverTagLabel.classList.add('drag-over-right');
+                }
+            })
+
+        });
+
     }
     renderTags();
 
@@ -535,7 +602,7 @@
     }
 
     // helper function for mustache to get tag background color
-    function getTagBackgroundColor () {
+    function getTagBackgroundColor() {
         for (let tag of tags) {
             if (tag.name == this && 'color' in tag) {
                 return tag.color;
@@ -544,7 +611,7 @@
     }
 
     // helper function for mustache to get tag text color
-    function getTagTextColor () {
+    function getTagTextColor() {
         // when used for tags-template, 'this' references a tag object
         if ('color' in this) {
             return pickTextColorBasedOnBackgroundColor(this.color);
@@ -558,6 +625,11 @@
         }
 
         return "black";
+    }
+
+    // helper function for mustache to get tag shortcut
+    function getTagShortCut() {
+        return tags.map(t => t.name).indexOf(this["name"]) + 1;
     }
 
     // helper function to determine whether to use white or black as text color depending on given background color
