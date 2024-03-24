@@ -289,7 +289,6 @@
 
         // render remaining tasks in default box
         const remaining_tasks = tasks.filter(t => !tasks_in_boxes.includes(t));
-        console.log(sortTasksByPosition(remaining_tasks, 'default'))
         const remaining_tasks_rendered = Mustache.render(task_template, {tasks: sortTasksByPosition(remaining_tasks, 'default'), "tagColor": getTagBackgroundColor, "tagTextColor": getTagTextColor});
         document.getElementById('task-list-default').innerHTML = remaining_tasks_rendered;
 
@@ -405,6 +404,118 @@
         }
     }
 
+    function focusTaskWithId(taskId) {
+        let el = document.querySelector(`.task[data-task-id='${taskId}']`);
+        if (el) {
+            el.focus();
+        } else {
+            console.error(`task element for task with id ${taskId} not found`);
+        }
+    }
+
+    // focus title of task with given task id or task element
+    function focusTaskTitle(taskElOrTaskId) {
+        if (taskElOrTaskId instanceof HTMLElement) {
+            let taskId = getTaskIdForTaskElement(taskElOrTaskId);
+            focusTaskTitleOfTaskWithId(taskId);
+        } else {
+            focusTaskTitleOfTaskWithId(taskElOrTaskId);
+        }
+    }
+
+    // focus title of task with given task id
+    function focusTaskTitleOfTaskWithId(taskId) {
+        if (typeof taskId != "string") {
+            throw "taskId not string"
+        }
+        const el = document.querySelector(`.task[data-task-id='${taskId}'] .task-title`);
+        el.setAttribute('contentEditable', true);
+        r = document.createRange();
+        r.selectNodeContents(el);
+        r.collapse(false);
+        s = window.getSelection(),
+        s.removeAllRanges();
+        s.addRange(r);
+    }
+
+    function getFocusedTaskElement() {
+        let focusedElement = document.querySelector('*:focus');
+        if (focusedElement == null) {
+            throw "could not find focused task element: no element is focused"
+        } else if (focusedElement.classList.contains('task')) {
+            return focusedElement;
+        } else if (focusedElement.parentElement.classList.contains('task')) {
+            return focusedElement.parentElement;
+        } else {
+            throw "could not find focused task element: focused element is neither task, nor task title"
+        }
+    }
+
+    function getTaskIdForTaskElement(el) {
+        return el.dataset.taskId;
+    }
+
+    // get next task after task with given task id or task element
+    // returns task with given task id if no next task exists
+    function getTaskElAfterTaskEl(taskEl) {
+        if (!(taskEl instanceof HTMLElement)) {
+            console.error('taskEl is not an instance of HTMLElement', taskEl);
+        }
+
+        if (taskEl.nextElementSibling) {
+            // return next sibling in current task box
+            return taskEl.nextElementSibling;
+        } else {
+            // find next task box
+            let nextParentSibling = taskEl.closest('.task-box').nextElementSibling;
+            while(nextParentSibling) {
+                // find first task in next task box
+                let nextSibling = nextParentSibling.querySelector('.task');
+                if (nextSibling) {
+                    return nextSibling;
+                } else {
+                    // if task box does not contain any task, continue with next task box
+                    nextParentSibling = nextParentSibling.nextElementSibling;
+                }
+            }
+        }
+        return document.querySelector('.task');
+    }
+
+    // get previous task before task with given task id or task element
+    function getTaskElBeforeTaskEl(taskEl) {
+        if (taskEl.previousElementSibling) {
+            // return previous sibling in current task box
+            return taskEl.previousElementSibling;
+        } else {
+            // find previous task box
+            let prevParentSibling = taskEl.closest('.task-box').previousElementSibling;
+            while(prevParentSibling){
+                // find last task in previous task box
+                let prevSibling = prevParentSibling.querySelector('.task:last-of-type');
+                if (prevSibling) {
+                    return prevSibling;
+                } else {
+                    // if task box does not contain any task, continue with previous task box
+                    prevParentSibling = prevParentSibling.previousElementSibling;
+                }
+            }
+        }
+        // return last task
+        return getLastTaskEl();
+    }
+
+    function getLastTaskEl() {
+        const taskBoxes = document.querySelectorAll('.task-box');
+        for (box of Array.from(taskBoxes).reverse()) {
+            let taskEl = box.querySelector('.task:last-of-type');
+            if (taskEl) {
+                return taskEl;
+            }
+        }
+        return document.querySelector('.task');
+    }
+
     function getTaskTitleFromTaskElement(taskEl) {
         let title = '';
         for (var i = 0; i < taskEl.querySelector('.task-title').childNodes.length; ++i) {
@@ -477,113 +588,6 @@
         }
     }
 
-    function getFocusedTaskElement() {
-        let focusedElement = document.querySelector('*:focus');
-        if (focusedElement == null) {
-            throw "could not find focused task element: no element is focused"
-        } else if (focusedElement.classList.contains('task')) {
-            return focusedElement;
-        } else if (focusedElement.parentElement.classList.contains('task')) {
-            return focusedElement.parentElement;
-        } else {
-            throw "could not find focused task element: focused element is neither task, nor task title"
-        }
-    }
-
-    function getTaskIdForTaskElement(el) {
-        return el.dataset.taskId;
-    }
-
-    // get next task after task with given task id or task element
-    // returns task with given task id if no next task exists
-    function getTaskElAfterTaskEl(taskEl) {
-        if (!(taskEl instanceof HTMLElement)) {
-            console.error('taskEl is not an instance of HTMLElement', taskEl);
-        }
-
-        if (taskEl.nextElementSibling) {
-            // return next sibling in current task box
-            return taskEl.nextElementSibling;
-        } else {
-            // find next task box
-            let nextParentSibling = taskEl.closest('.task-box').nextElementSibling;
-            while(nextParentSibling) {
-                // find first task in next task box
-                let nextSibling = nextParentSibling.querySelector('.task');
-                if (nextSibling) {
-                    return nextSibling;
-                } else {
-                    // if task box does not contain any task, continue with next task box
-                    nextParentSibling = nextParentSibling.nextElementSibling;
-                }
-            }
-        }
-        return document.querySelector('.task');
-    }
-
-    // get next task after task with given task id
-    // returns task with given task id if no next task exists
-    function getTaskAfterTaskWithId(taskId) {
-        for (const [i, task] of tasks.entries()) {
-            if (task.id == taskId) {
-                if (i+1 < tasks.length) {
-                    return tasks[i+1];
-                } else {
-                    return task;
-                }
-            }
-        }
-    }
-
-    // get previous task before task with given task id or task element
-    function getTaskElBeforeTaskEl(taskEl) {
-        if (taskEl.previousElementSibling) {
-            // return previous sibling in current task box
-            return taskEl.previousElementSibling;
-        } else {
-            // find previous task box
-            let prevParentSibling = taskEl.closest('.task-box').previousElementSibling;
-            while(prevParentSibling){
-                // find last task in previous task box
-                let prevSibling = prevParentSibling.querySelector('.task:last-of-type');
-                if (prevSibling) {
-                    return prevSibling;
-                } else {
-                    // if task box does not contain any task, continue with previous task box
-                    prevParentSibling = prevParentSibling.previousElementSibling;
-                }
-            }
-        }
-        // return last task
-        return getLastTaskEl();
-    }
-
-    function getLastTaskEl() {
-        const taskBoxes = document.querySelectorAll('.task-box');
-        for (box of Array.from(taskBoxes).reverse()) {
-            let taskEl = box.querySelector('.task:last-of-type');
-            if (taskEl) {
-                return taskEl;
-            }
-        }
-        return document.querySelector('.task');
-    }
-
-    // returns task with given task id if no previous task exists
-    // get previous task before task with given task id
-    // returns task with given task id if no previous task exists
-    function getTaskBeforeTaskWithId(taskId) {
-        for (const [i, task] of tasks.entries()) {
-            if (task.id == taskId) {
-                if (i-1 >= 0) {
-                    return tasks[i-1];
-                } else {
-                    return task;
-                }
-            }
-        }
-    }
-
     // add new task after task with given id
     function newTaskAfterTask(taskId) {
         const newTaskId = crypto.randomUUID();
@@ -596,49 +600,7 @@
         }
     }
 
-    function focusTaskWithId(taskId) {
-        let el = document.querySelector(`.task[data-task-id='${taskId}']`);
-        if (el) {
-            el.focus();
-        } else {
-            console.error(`task element for task with id ${taskId} not found`);
-        }
-    }
-
-    // focus title of task with given task id or task element
-    function focusTaskTitle(taskElOrTaskId) {
-        if (taskElOrTaskId instanceof HTMLElement) {
-            let taskId = getTaskIdForTaskElement(taskElOrTaskId);
-            focusTaskTitleOfTaskWithId(taskId);
-        } else {
-            focusTaskTitleOfTaskWithId(taskElOrTaskId);
-        }
-    }
-
-    // focus title of task with given task id
-    function focusTaskTitleOfTaskWithId(taskId) {
-        if (typeof taskId != "string") {
-            throw "taskId not string"
-        }
-        const el = document.querySelector(`.task[data-task-id='${taskId}'] .task-title`);
-        el.setAttribute('contentEditable', true);
-        r = document.createRange();
-        r.selectNodeContents(el);
-        r.collapse(false);
-        s = window.getSelection(),
-        s.removeAllRanges();
-        s.addRange(r);
-    }
-
     // ----- tag functions -----
-
-    function setTagColor(tagName, color) {
-        for (let [index, tag] of tags.entries()) {
-            if (tag.name == tagName) {
-                tag.color = color;
-            }
-        }
-    }
 
     function newTagElement(tagText) {
         const el = document.createElement('span');
@@ -684,6 +646,14 @@
     // helper function for mustache to get tag shortcut
     function getTagShortCut() {
         return tags.map(t => t.name).indexOf(this["name"]) + 1;
+    }
+
+    function setTagColor(tagName, color) {
+        for (let [index, tag] of tags.entries()) {
+            if (tag.name == tagName) {
+                tag.color = color;
+            }
+        }
     }
 
     // ----- color functions -----
