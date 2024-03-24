@@ -109,13 +109,12 @@
             }
             event.preventDefault();
             const focusedTask = document.querySelector(`.task:focus`);
-            let taskId;
-            if (focusedTask != null) {
-                taskId = getTaskIdForTaskElement(focusedTask);
+            let newTask;
+            if (focusedTask == null) {
+                newTask = newTaskAfterTaskEl(getLastTaskEl());
             } else {
-                taskId = tasks[tasks.length-1].id;
+                newTask = newTaskAfterTaskEl(focusedTask);
             }
-            let newTask = newTaskAfterTask(taskId);
             renderTasks();
             focusTaskTitle(newTask.id);
             inputMode = 'i';
@@ -147,7 +146,7 @@
             }
 
             // toggle predefined tag for shortcut event
-            toggleTagForTaskId(taskId, tags[tagIndex].name)
+            toggleTagForTaskId(taskId, tags[tagIndex].name);
 
             renderTasks();
             if (inputMode == 'v') {
@@ -283,7 +282,7 @@
             if (box.id == 'default') continue;
             const box_tasks = tasks.filter(task => task.tags.length > 0 && box.tags.every(boxtag => task.tags.includes(boxtag)));
             const rendered = Mustache.render(task_template, {tasks: sortTasksByPosition(box_tasks, box.id), "tagColor": getTagBackgroundColor, "tagTextColor": getTagTextColor});
-            document.getElementById('task-list-' + box['id']).innerHTML = rendered;
+            document.getElementById('task-list-' + box.id).innerHTML = rendered;
             tasks_in_boxes = tasks_in_boxes.concat(box_tasks);
         }
 
@@ -291,6 +290,8 @@
         const remaining_tasks = tasks.filter(t => !tasks_in_boxes.includes(t));
         const remaining_tasks_rendered = Mustache.render(task_template, {tasks: sortTasksByPosition(remaining_tasks, 'default'), "tagColor": getTagBackgroundColor, "tagTextColor": getTagTextColor});
         document.getElementById('task-list-default').innerHTML = remaining_tasks_rendered;
+
+        saveTaskPositions();
 
         // register task-specific key events
         document.querySelectorAll('.task .task-title').forEach((el) => {
@@ -303,7 +304,7 @@
                     const focusedTaskEl = getFocusedTaskElement();
                     if (getTaskTitleFromTaskElement(focusedTaskEl) != '') {
                         const taskId = getTaskIdForTaskElement(focusedTaskEl);
-                        let newTask = newTaskAfterTask(taskId);
+                        let newTask = newTaskAfterTaskEl(focusedTaskEl);
                         saveNewTagsForTask(focusedTaskEl);
                         renderTasks();
                         focusTaskTitle(newTask.id);
@@ -365,30 +366,39 @@
 
             // update task on focusout
             el.addEventListener('focusout', (event) => {
+                const taskEl = event.target.parentElement;
                 event.target.setAttribute('contentEditable', false);
                 inputMode = 'v';
 
                 // update data model of task that lost focus
-                saveNewTagsForTask(event.target.parentElement);
+                saveNewTagsForTask(taskEl);
 
                 // re-render tasks
-                const taskId = getTaskIdForTaskElement(event.target.parentElement);
+                const taskId = getTaskIdForTaskElement(taskEl);
                 renderTasks();
                 focusTaskWithId(taskId);
 
                 // delete task if title is empty
-                if (getTaskTitleFromTaskElement(event.target.parentElement) == '') {
-                    const taskId = getTaskIdForTaskElement(event.target.parentElement);
-                    let taskToBeRemovedIndex;
+                if (getTaskTitleFromTaskElement(taskEl) == '') {
+                    const taskId = getTaskIdForTaskElement(taskEl);
+
+                    let nextFocusTaskEl;
+                    if (taskEl.previousElementSibling) {
+                        nextFocusTaskEl = taskEl.previousElementSibling;
+                    } else if (taskEl.nextElementSibling) {
+                        nextFocusTaskEl = taskEl.nextElementSibling;
+                    } else {
+                        nextFocusTaskEl = getFirstTaskEl();
+                    }
+
                     for (const [i, task] of tasks.entries()) {
                         if (task.id == taskId) {
                             tasks.splice(i, 1);
-                            taskToBeRemovedIndex = i;
                             break;
                         }
                     }
                     renderTasks();
-                    focusTaskWithId(tasks[taskToBeRemovedIndex-1]['id']);
+                    focusTaskWithId(getTaskIdForTaskElement(nextFocusTaskEl));
                 }
             })
         });
@@ -396,11 +406,14 @@
 
     // ----- task functions -----
 
-    function createTask(taskId) {
+    function createTask(taskId, boxPositions, tags) {
+        if (boxPositions == null) boxPositions = {};
+        if (tags == null) tags = [];
         return {
             title: '',
             id: taskId,
-            tags: []
+            tags: structuredClone(tags),
+            boxPositions: boxPositions,
         }
     }
 
@@ -436,6 +449,22 @@
         s = window.getSelection(),
         s.removeAllRanges();
         s.addRange(r);
+    }
+
+    function getBoxIdForTaskEl(taskEl) {
+       return taskEl.closest('.task-box').dataset.taskBoxId;
+    }
+
+    function getBoxPositionForTaskEl(taskEl) {
+        return Array.from(taskEl.closest('.task-list').children).indexOf(taskEl);
+    }
+
+    function getBoxWithId(boxId) {
+        for (box of boxes) {
+            if (box.id == boxId) {
+                return box;
+            }
+        }
     }
 
     function getFocusedTaskElement() {
@@ -516,6 +545,10 @@
         return document.querySelector('.task');
     }
 
+    function getFirstTaskEl() {
+        return document.querySelector('.task');
+    }
+
     function getTaskTitleFromTaskElement(taskEl) {
         let title = '';
         for (var i = 0; i < taskEl.querySelector('.task-title').childNodes.length; ++i) {
@@ -555,11 +588,12 @@
         // save task positions for all tasks
         document.querySelectorAll('.task').forEach(taskEl => {
             const taskId = getTaskIdForTaskElement(taskEl);
-            const boxId = taskEl.closest('.task-box').dataset.taskBoxId;
+            const boxId = getBoxIdForTaskEl(taskEl);
+
             for (let task of tasks) {
                 if (task.id == taskId) {
                     if (!("boxPositions" in task)) task["boxPositions"] = {};
-                    task["boxPositions"][boxId] = Array.from(taskEl.closest('.task-list').children).indexOf(taskEl);
+                    task["boxPositions"][boxId] = getBoxPositionForTaskEl(taskEl)
                 }
             }
         });
@@ -589,15 +623,15 @@
     }
 
     // add new task after task with given id
-    function newTaskAfterTask(taskId) {
+    function newTaskAfterTaskEl(taskEl) {
         const newTaskId = crypto.randomUUID();
-        for (const [i, task] of tasks.entries()) {
-            if (task.id == taskId) {
-                const newTask = createTask(newTaskId);
-                tasks.splice(i+1, 0, newTask);
-                return newTask;
-            }
-        }
+        const boxId = getBoxIdForTaskEl(taskEl);
+        const boxPositions = {};
+        boxPositions[boxId] = getBoxPositionForTaskEl(taskEl) + 0.5; // add task between taskEl and next task element
+        const tags = getBoxWithId(boxId).tags;
+        const newTask = createTask(newTaskId, boxPositions, tags);
+        tasks.push(newTask);
+        return newTask;
     }
 
     // ----- tag functions -----
