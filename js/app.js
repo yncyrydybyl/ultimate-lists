@@ -64,23 +64,23 @@
         } else if (inputMode == 'v' && event.key == "K") {
             // move task up
             const focusedTask = document.querySelector(`.task:focus`);
-            const taskId = getTaskIdForTaskElement(focusedTask);
             if (focusedTask != null) {
                 if (focusedTask.previousElementSibling != null) {
                     focusedTask.previousElementSibling.before(focusedTask);
                 }
-                focusTaskWithId(taskId);
+                // re-focus task after moving in DOM
+                focusedTask.focus();
                 saveTaskPositions();
             }
         } else if (inputMode == 'v' && event.key == "J") {
             // move task down
             const focusedTask = document.querySelector(`.task:focus`);
-            const taskId = getTaskIdForTaskElement(focusedTask);
             if (focusedTask != null) {
                 if (focusedTask.nextElementSibling != null) {
                     focusedTask.nextElementSibling.after(focusedTask);
                 }
-                focusTaskWithId(taskId);
+                // re-focus task after moving in DOM
+                focusedTask.focus();
                 saveTaskPositions();
             }
         } else if (inputMode == 'v' && event.key == "i") {
@@ -115,7 +115,7 @@
                 newTask = newTaskAfterTaskEl(focusedTask);
             }
             renderTasks();
-            focusTaskTitleOfTaskWithId(newTask.id);
+            focusTaskTitle(getTaskElById(newTask.id));
             inputMode = 'i';
         } else if (inputMode == 'i' && event.key == 'Escape') {
             // handle escape key event
@@ -133,6 +133,7 @@
             console.log("ctrl", event.key);
             const focusedTaskEl = getFocusedTaskElement();
             const taskId = getTaskIdForTaskElement(focusedTaskEl);
+            const taskRef = getTaskRef(focusedTaskEl);
 
             const tagIndex = parseInt(event.key) == 0 ? 9 : parseInt(event.key) - 1;
 
@@ -146,9 +147,9 @@
 
             renderTasks();
             if (inputMode == 'v') {
-                focusTaskWithId(taskId);
+                focusTaskByRef(taskRef);
             } else if (inputMode == 'i') {
-                focusTaskTitleOfTaskWithId(taskId);
+                focusTaskTitleByRef(taskRef);
             }
         }
     });
@@ -299,11 +300,10 @@
                     // only create new task if current task title is not empty
                     const focusedTaskEl = getFocusedTaskElement();
                     if (getTaskTitleFromTaskElement(focusedTaskEl) != '') {
-                        const taskId = getTaskIdForTaskElement(focusedTaskEl);
                         let newTask = newTaskAfterTaskEl(focusedTaskEl);
                         saveNewTagsForTask(focusedTaskEl);
                         renderTasks();
-                        focusTaskTitleOfTaskWithId(newTask.id);
+                        focusTaskTitle(getTaskElById(newTask.id));
                     }
                 } else if (event.key == "#") {
                     // handle '#' key on .task-title: create new tag
@@ -317,16 +317,16 @@
                         event.preventDefault();
                     }
                     const focusedTaskEl = getFocusedTaskElement();
-                    const focusedTaskId = getTaskIdForTaskElement(focusedTaskEl);
+                    const focusedTaskRef = getTaskRef(focusedTaskEl);
                     if (focusedTaskEl.querySelector('.task-title .tag')) {
                         // when new tag is being created, save tag
                         saveNewTagsForTask(focusedTaskEl);
                         renderTasks();
-                        focusTaskTitleOfTaskWithId(focusedTaskId);
+                        focusTaskTitleByRef(focusedTaskRef);
                     } else if (event.key == "Tab" && getTaskTitleFromTaskElement(focusedTaskEl) != '') {
                         // when tab key is pressed and task title is not empty, unfocus task title and focus task
                         renderTasks();
-                        focusTaskWithId(focusedTaskId);
+                        focusTaskByRef(focusedTaskRef);
                         inputMode = 'v';
                     }
                 }
@@ -362,6 +362,7 @@
 
             // update task on focusout
             el.addEventListener('focusout', (event) => {
+                let nextFocusedTaskRef;
                 const taskEl = event.target.parentElement;
                 event.target.setAttribute('contentEditable', false);
                 inputMode = 'v';
@@ -369,13 +370,8 @@
                 // update data model of task that lost focus
                 saveNewTagsForTask(taskEl);
 
-                // re-render tasks
-                const taskId = getTaskIdForTaskElement(taskEl);
-                renderTasks();
-                focusTaskWithId(taskId);
-
-                // delete task if title is empty
                 if (getTaskTitleFromTaskElement(taskEl) == '') {
+                    // delete task if title is empty
                     const taskId = getTaskIdForTaskElement(taskEl);
 
                     let nextFocusTaskEl;
@@ -393,9 +389,16 @@
                             break;
                         }
                     }
-                    renderTasks();
-                    focusTaskWithId(getTaskIdForTaskElement(nextFocusTaskEl));
+
+                    nextFocusedTaskRef = getTaskRef(nextFocusTaskEl);
+                } else {
+                    // re-render tasks
+                    nextFocusedTaskRef = getTaskRef(taskEl);
                 }
+
+                // re-render tasks and restore focus
+                renderTasks();
+                focusTaskByRef(nextFocusedTaskRef);
             })
         });
     }
@@ -413,12 +416,14 @@
         }
     }
 
-    function focusTaskWithId(taskId) {
-        let el = document.querySelector(`.task[data-task-id='${taskId}']`);
-        if (el) {
-            el.focus();
+    // focus task by given task reference
+    function focusTaskByRef(taskRef) {
+        const taskEl = getTaskElByRef(taskRef);
+        if (taskEl) {
+            taskEl.focus();
         } else {
-            console.error(`task element for task with id ${taskId} not found`);
+            console.error(`task element for task with boxId ${taskRef.boxId} and taskId ${taskRef.taskId} not found`);
+            throw "[focusTaskByRef] task element not found";
         }
     }
 
@@ -438,13 +443,15 @@
         s.addRange(r);
     }
 
-    // focus title of task with given task id
-    function focusTaskTitleOfTaskWithId(taskId) {
-        if (typeof taskId != "string") {
-            throw "[focusTaskTitleOfTaskWithId] taskId is not a string"
+    // focus task title by given task reference
+    function focusTaskTitleByRef(taskRef) {
+        const taskEl = getTaskElByRef(taskRef);
+        if (taskEl) {
+            focusTaskTitle(taskEl);
+        } else {
+            console.error(`task element for task with boxId ${taskRef.boxId} and taskId ${taskRef.taskId} not found`);
+            throw "[focusTaskTitleByRef] task element not found";
         }
-        const taskEl = document.querySelector(`.task[data-task-id='${taskId}']`);
-        focusTaskTitle(taskEl);
     }
 
     function getBoxIdForTaskEl(taskEl) {
@@ -474,6 +481,19 @@
         } else {
             throw "could not find focused task element: focused element is neither task, nor task title"
         }
+    }
+
+    function getTaskElById(taskId) {
+        return document.querySelector(`.task[data-task-id='${taskId}']`);
+    }
+
+    function getTaskElByRef(taskRef) {
+        let taskEl = document.querySelector(`.task-box[data-task-box-id='${taskRef.boxId}'] .task[data-task-id='${taskRef.taskId}']`);
+        if (!taskEl) {
+            // task element could not be found. Try again without boxId...
+            taskEl = getTaskElById(taskRef.taskId);
+        }
+        return taskEl;
     }
 
     function getTaskIdForTaskElement(el) {
@@ -528,6 +548,14 @@
         }
         // return last task
         return getLastTaskEl();
+    }
+
+    // get re-render safe reference to specific task in specific box
+    function getTaskRef(taskEl) {
+        return {
+            'boxId': getBoxIdForTaskEl(taskEl),
+            'taskId': getTaskIdForTaskElement(taskEl)
+        };
     }
 
     function getLastTaskEl() {
