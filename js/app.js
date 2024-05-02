@@ -124,11 +124,8 @@
             if (focusedTitle != null) {
                 focusedTitle.setAttribute('contentEditable', false);
                 let taskEl = focusedTitle.parentElement;
-                const taskId = getTaskIdForTaskElement(taskEl);
                 saveNewTagsForTask(taskEl);
-                window.setTimeout(function() {
-                    focusTaskWithId(taskId);
-                }, 30);
+                taskEl.focus();
             }
             inputMode = 'v';
         } else if (event.ctrlKey && ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].includes(event.key)) {
