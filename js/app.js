@@ -93,7 +93,6 @@
                 return;
             }
             event.preventDefault();
-            focusedTask.querySelector('.task-title').setAttribute('contentEditable', true);
             focusTaskTitle(focusedTask);
             inputMode = 'i'; // switch to insert mode
         } else if (inputMode == 'v' && event.code == "Space") {
@@ -116,7 +115,7 @@
                 newTask = newTaskAfterTaskEl(focusedTask);
             }
             renderTasks();
-            focusTaskTitle(newTask.id);
+            focusTaskTitleOfTaskWithId(newTask.id);
             inputMode = 'i';
         } else if (inputMode == 'i' && event.key == 'Escape') {
             // handle escape key event
@@ -307,7 +306,7 @@
                         let newTask = newTaskAfterTaskEl(focusedTaskEl);
                         saveNewTagsForTask(focusedTaskEl);
                         renderTasks();
-                        focusTaskTitle(newTask.id);
+                        focusTaskTitleOfTaskWithId(newTask.id);
                     }
                 } else if (event.key == "#") {
                     // handle '#' key on .task-title: create new tag
@@ -426,29 +425,29 @@
         }
     }
 
-    // focus title of task with given task id or task element
-    function focusTaskTitle(taskElOrTaskId) {
-        if (taskElOrTaskId instanceof HTMLElement) {
-            let taskId = getTaskIdForTaskElement(taskElOrTaskId);
-            focusTaskTitleOfTaskWithId(taskId);
-        } else {
-            focusTaskTitleOfTaskWithId(taskElOrTaskId);
+    // focus title of given task element
+    function focusTaskTitle(taskEl) {
+        if (!(taskEl instanceof HTMLElement)) {
+            console.error("[focusTaskTitle] taskEl is not an instance of HTMLElement", taskEl);
+            throw "[focusTaskTitle] taskEl is not an instance of HTMLElement";
         }
+        const titleEl = taskEl.querySelector(`.task-title`);
+        titleEl.setAttribute('contentEditable', true);
+        r = document.createRange();
+        r.selectNodeContents(titleEl);
+        r.collapse(false);
+        s = window.getSelection(),
+        s.removeAllRanges();
+        s.addRange(r);
     }
 
     // focus title of task with given task id
     function focusTaskTitleOfTaskWithId(taskId) {
         if (typeof taskId != "string") {
-            throw "taskId not string"
+            throw "[focusTaskTitleOfTaskWithId] taskId is not a string"
         }
-        const el = document.querySelector(`.task[data-task-id='${taskId}'] .task-title`);
-        el.setAttribute('contentEditable', true);
-        r = document.createRange();
-        r.selectNodeContents(el);
-        r.collapse(false);
-        s = window.getSelection(),
-        s.removeAllRanges();
-        s.addRange(r);
+        const taskEl = document.querySelector(`.task[data-task-id='${taskId}']`);
+        focusTaskTitle(taskEl);
     }
 
     function getBoxIdForTaskEl(taskEl) {
