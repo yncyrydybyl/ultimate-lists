@@ -122,9 +122,9 @@
             console.log('return to view mode');
             const focusedTitle = document.querySelector('.task .task-title:focus');
             if (focusedTitle != null) {
+                // this will unfocus the title element which will trigger the 'focusout' event handler
                 focusedTitle.setAttribute('contentEditable', false);
                 let taskEl = focusedTitle.parentElement;
-                saveNewTagsForTask(taskEl);
                 taskEl.focus();
             }
             inputMode = 'v';
