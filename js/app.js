@@ -295,7 +295,12 @@
             // delete tag when delete button is clicked
             el.querySelectorAll('.task-box-heading .tag button.delete').forEach(deleteBtn => {
                 deleteBtn.addEventListener('click', event => {
-                    removeTagFromBox(event.target.parentElement.dataset.tagName, event.target.closest('.task-box').dataset.taskBoxId);
+                    const tagName = event.target.parentElement.dataset.tagName;
+                    const boxId = event.target.closest('.task-box').dataset.taskBoxId;
+                    const tags = removeTagFromBox(tagName, boxId);
+                    if (tags.length == 0) {
+                        deleteBoxWithId(boxId);
+                    }
                     renderTasks();
                 });
             });
@@ -442,6 +447,32 @@
         });
     }
 
+    // ----- box functions -----
+
+    function getBoxIdForTaskEl(taskEl) {
+       return taskEl.closest('.task-box').dataset.taskBoxId;
+    }
+
+    function getBoxPositionForTaskEl(taskEl) {
+        return Array.from(taskEl.closest('.task-list').children).indexOf(taskEl);
+    }
+
+    function getBoxWithId(boxId) {
+        for (box of boxes) {
+            if (box.id == boxId) {
+                return box;
+            }
+        }
+    }
+
+    function deleteBoxWithId(boxId) {
+        for (let [index, box] of boxes.entries()) {
+            if (box.id== boxId) {
+                boxes.splice(index, 1);
+            }
+        }
+    }
+
     // ----- task functions -----
 
     function createTask(taskId, boxPositions, tags) {
@@ -490,22 +521,6 @@
         } else {
             console.error(`task element for task with boxId ${taskRef.boxId} and taskId ${taskRef.taskId} not found`);
             throw "[focusTaskTitleByRef] task element not found";
-        }
-    }
-
-    function getBoxIdForTaskEl(taskEl) {
-       return taskEl.closest('.task-box').dataset.taskBoxId;
-    }
-
-    function getBoxPositionForTaskEl(taskEl) {
-        return Array.from(taskEl.closest('.task-list').children).indexOf(taskEl);
-    }
-
-    function getBoxWithId(boxId) {
-        for (box of boxes) {
-            if (box.id == boxId) {
-                return box;
-            }
         }
     }
 
@@ -753,7 +768,7 @@
                     throw "tag not found in box";
                 }
                 box.tags.splice(index, 1);
-                return;
+                return box.tags;
             }
         }
         throw "box not found"
