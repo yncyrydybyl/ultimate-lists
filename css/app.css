@@ -62,6 +62,22 @@
     margin-right: .2rem;
 }
 
+.task-box .task-box-heading .button {
+    vertical-align: bottom;
+}
+
+.task-box[data-task-box-id='default'] .task-box-heading .tag.button {
+    display: none;
+}
+
+.task-box .task-box-heading input {
+    border-radius: .1em;
+    border: 1px solid #ccc;
+    line-height: 1.5em;
+    vertical-align: middle;
+    display: none;
+}
+
 .task-list .task:focus {
     background-color: #eee;
 }

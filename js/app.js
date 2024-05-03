@@ -156,8 +156,8 @@
 
     // handle enter key on new tag input
     document.getElementById('new-tag-input').addEventListener('keydown', (event) => {
-        if (event.key == 'Enter') {
-            tags.push({"name": event.target.value });
+        if (event.key == 'Enter' && event.target.value.trim() != '') {
+            tags.push({"name": event.target.value.trim() });
             event.target.value = '';
             renderTags();
         }
@@ -261,6 +261,38 @@
         const boxes_template = document.getElementById('boxes-template').innerHTML;
         const boxes_rendered = Mustache.render(boxes_template, {boxes: boxes, "tagColor": getTagBackgroundColor, "tagTextColor": getTagTextColor});
         document.getElementById('task-boxes-wrapper').innerHTML = boxes_rendered;
+
+        // register box-specific events
+        document.querySelectorAll('.task-box').forEach((el) => {
+            // show new tag input when button is pressed
+            el.querySelector('.task-box-heading .button').addEventListener('click', event => {
+                event.target.style.display = "none";
+                event.target.parentElement.querySelector('input').style.display = "inline-flex";
+            });
+
+            // hide input when focus is lost
+            el.querySelector('.task-box-heading input').addEventListener('focusout', event => {
+                event.target.style.display = "none";
+                event.target.parentElement.querySelector('.button').style.display = "inline-flex";
+            });
+
+            // add new tag when enter key is pressed
+            el.querySelector('.task-box-heading input').addEventListener('keydown', event => {
+                if (event.key == 'Enter' && event.target.value.trim() != '') {
+                    const boxId = el.dataset.taskBoxId;
+
+                    for (box of boxes) {
+                        if (box.id == boxId) {
+                            box.tags.push(event.target.value.trim());
+                        };
+                    }
+
+                    event.target.value = '';
+                    renderTasks();
+                }
+            });
+
+        });
 
         // render tasks in boxes
         const task_template = document.getElementById('tasks-template').innerHTML;
