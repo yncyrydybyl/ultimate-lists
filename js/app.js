@@ -292,6 +292,13 @@
                 }
             });
 
+            // delete tag when delete button is clicked
+            el.querySelectorAll('.task-box-heading .tag button.delete').forEach(deleteBtn => {
+                deleteBtn.addEventListener('click', event => {
+                    removeTagFromBox(event.target.parentElement.dataset.tagName, event.target.closest('.task-box').dataset.taskBoxId);
+                    renderTasks();
+                });
+            });
         });
 
         // render tasks in boxes
@@ -736,6 +743,20 @@
     // helper function for mustache to get tag shortcut
     function getTagShortCut() {
         return tags.map(t => t.name).indexOf(this["name"]) + 1;
+    }
+
+    function removeTagFromBox(tagName, boxId) {
+        for (box of boxes) {
+            if (box.id == boxId) {
+                const index = box.tags.indexOf(tagName);
+                if (index == -1) {
+                    throw "tag not found in box";
+                }
+                box.tags.splice(index, 1);
+                return;
+            }
+        }
+        throw "box not found"
     }
 
     function setTagColor(tagName, color) {

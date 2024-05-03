@@ -24,7 +24,7 @@
   <script id="boxes-template" type="x-tmpl-task">
     {{#boxes}}
     <section class="task-box" data-task-box-id="{{id}}">
-      <h2 class="task-box-heading">{{name}}{{#tags}}<span style="background-color: {{tagColor}}; color: {{tagTextColor}}" class="tag">{{.}}</span>{{/tags}}<label for="new-tag-input-{{id}}" class="tag button">+</label><input type="text" id="new-tag-input-{{id}}" placeholder="add new tag filter"/></h2>
+      <h2 class="task-box-heading">{{name}}{{#tags}}<span class="tag" data-tag-name="{{.}}" style="background-color: {{tagColor}}; color: {{tagTextColor}}">{{.}} <button class="delete is-small"></button></span>{{/tags}}<label for="new-tag-input-{{id}}" class="tag button">+</label><input type="text" id="new-tag-input-{{id}}" placeholder="add new tag filter"/></h2>
       <section id="task-list-{{id}}" class="task-list"></section>
     </section>
     {{/boxes}}

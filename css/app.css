@@ -62,6 +62,14 @@
     margin-right: .2rem;
 }
 
+.task-box .task-box-heading .tag button {
+    display: none;
+}
+
+.task-box .task-box-heading .tag:hover button {
+    display: block;
+}
+
 .task-box .task-box-heading .button {
     vertical-align: bottom;
 }
