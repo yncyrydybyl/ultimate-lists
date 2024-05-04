@@ -18,6 +18,7 @@
     ];
 
     var inputMode = 'v'; // start in view mode
+    var numColumns = 3;
 
     // handle global key events
     window.addEventListener('keydown', (event) => {
@@ -257,10 +258,41 @@
     function renderTasks() {
         console.log("rendering tasks...");
 
-        // create boxes
-        const boxes_template = document.getElementById('boxes-template').innerHTML;
-        const boxes_rendered = Mustache.render(boxes_template, {boxes: boxes, "tagColor": getTagBackgroundColor, "tagTextColor": getTagTextColor});
-        document.getElementById('task-boxes-wrapper').innerHTML = boxes_rendered;
+        // create columns skeleton
+        const columns = Array.from(Array(numColumns).keys())
+        const columnsTemplate = document.getElementById('columns-template').innerHTML;
+        const columnsRendered = Mustache.render(columnsTemplate, {columns});
+        document.getElementById('tasks-wrapper').innerHTML = columnsRendered;
+
+        // create boxes in columns
+        const boxesTemplate = document.getElementById('boxes-template').innerHTML;
+
+        for (columnIndex in columns) {
+            console.log(columnIndex);
+            // put all boxes with undefined columnIndex or columnIndex >= numColumns in column 0
+            const columnBoxes = boxes.filter(box => columnIndex == 0 && !(box.columnIndex > 0 && box.columnIndex < numColumns) || box.columnIndex == columnIndex);
+            const boxesRendered = Mustache.render(boxesTemplate, { boxes: columnBoxes, "tagColor": getTagBackgroundColor, "tagTextColor": getTagTextColor });
+            document.querySelector(`#tasks-wrapper .column[data-column-index='${columnIndex}']`).innerHTML = boxesRendered;
+        }
+
+        // add event listeners for column buttons
+        document.querySelectorAll('#tasks-wrapper .column:not(:last-child)').forEach(el => {
+            el.querySelector('.new-box-button').addEventListener('click', event => {
+                const columnIndex = event.target.closest('.column').dataset.columnIndex;
+                const newBoxId = crypto.randomUUID();
+                boxes.push({ tags: [], id: newBoxId, columnIndex: columnIndex });
+                renderTasks();
+                document.querySelector(`.task-box[data-task-box-id='${newBoxId}'] .task-box-heading .button`).style.display = "none";
+                document.querySelector(`#new-tag-input-${newBoxId}`).style.display = "inline-flex";
+                document.querySelector(`#new-tag-input-${newBoxId}`).focus();
+            });
+        });
+
+        // add event listener for new coloum button
+        document.querySelector('#tasks-wrapper .column:last-child .button').addEventListener('click', event => {
+            numColumns++;
+            renderTasks();
+        });
 
         // register box-specific events
         document.querySelectorAll('.task-box').forEach((el) => {

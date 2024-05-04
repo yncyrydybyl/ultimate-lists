@@ -17,9 +17,18 @@
         A keyboard-first, tag-based list and task management web app optimized for high-volume task management
       </p>
       <section class="tag-list-wrapper"><span id="tag-list"></span> <input type="text" id="new-tag-input" placeholder="create new tag"/></section>
-      <div id="task-boxes-wrapper"></div>
+      <div id="tasks-wrapper" class="columns"></div>
     </div>
   </section>
+
+  <script id="columns-template" type="x-tmpl-task">
+    {{#columns}}
+    <div class="column" data-column-index="{{.}}"></div>
+    {{/columns}}
+    <div class="column is-narrow">
+      <button class="button new-column-button is-small">+</button>
+    </div>
+  </script>
 
   <script id="boxes-template" type="x-tmpl-task">
     {{#boxes}}
@@ -28,6 +37,7 @@
       <section id="task-list-{{id}}" class="task-list"></section>
     </section>
     {{/boxes}}
+    <button class="button new-box-button is-small is-fullwidth">+</button>
   </script>
 
   <script id="tags-template" type="x-tmpl-task">
