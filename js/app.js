@@ -358,6 +358,7 @@
             const box = getBoxWithId(boxId);
             const boxTasks = tasks.filter(task =>
                 task.tags.length > 0 && // make sure that task has tags
+                box.tags.length > 0 &&
                 box.tags.every(boxTag => task.tags.includes(boxTag)) && // the task's tags must include every tag of the box
                 !boxes.some(otherBox => box.id != otherBox.id && otherBox.tags.every(boxTag => task.tags.includes(boxTag)) && box.tags.every(boxTag => otherBox.tags.includes(boxTag)) && !otherBox.tags.every(otherBoxTag => box.tags.includes(otherBoxTag))) // no other box exists that contains the task's tags AND contains the same but strictly more tags than the box in question
                 );
