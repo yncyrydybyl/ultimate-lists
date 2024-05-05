@@ -288,7 +288,7 @@
             });
         });
 
-        // add event listener for new coloum button
+        // add event listener for new column button
         document.querySelector('#tasks-wrapper .column:last-child .button').addEventListener('click', event => {
             numColumns++;
             renderTasks();
