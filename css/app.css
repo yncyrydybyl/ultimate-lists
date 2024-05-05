@@ -86,6 +86,18 @@
     display: none;
 }
 
+.task-box .task-box-heading button.delete {
+    background-color: #fff;
+}
+
+.task-box .task-box-heading:hover button.delete {
+    background-color: rgba(10,10,10,.1);
+}
+
+.task-box .task-box-heading button.delete:hover {
+    background-color: rgba(10,10,10,.4);
+}
+
 .task-list .task:focus {
     background-color: #eee;
 }

@@ -1,7 +1,7 @@
 (function () {
     var tasks = [
-        { title: 'my prio high task', id: crypto.randomUUID(), tags: ['prio::high'] },
-        { title: 'my 2nd task', id: crypto.randomUUID(), tags: [] }
+        { title: 'my prio high task', id: crypto.randomUUID(), tags: ['today', 'orga'] },
+        { title: 'my 2nd task', id: crypto.randomUUID(), tags: ['focus'] }
     ];
 
     var tags = [
@@ -13,8 +13,10 @@
 
     var boxes = [
         { name: "Inbox", tags: [], id: 'default'},
-        { tags: ['today', 'prio::high'], id: crypto.randomUUID() },
-        { tags: ['prio::high'], id: crypto.randomUUID() },
+        { tags: ['orga', 'today'], id: crypto.randomUUID(), columnIndex: 1 },
+        { tags: ['orga'], id: crypto.randomUUID(), columnIndex: 1 },
+        { tags: ['focus', 'today'], id: crypto.randomUUID(), columnIndex: 2 },
+        { tags: ['focus'], id: crypto.randomUUID(), columnIndex: 2 },
     ];
 
     var inputMode = 'v'; // start in view mode
@@ -268,9 +270,7 @@
         const boxesTemplate = document.getElementById('boxes-template').innerHTML;
 
         for (columnIndex in columns) {
-            console.log(columnIndex);
-            // put all boxes with undefined columnIndex or columnIndex >= numColumns in column 0
-            const columnBoxes = boxes.filter(box => columnIndex == 0 && !(box.columnIndex > 0 && box.columnIndex < numColumns) || box.columnIndex == columnIndex);
+            const columnBoxes = getBoxesInColumn(columnIndex);
             const boxesRendered = Mustache.render(boxesTemplate, { boxes: columnBoxes, "tagColor": getTagBackgroundColor, "tagTextColor": getTagTextColor });
             document.querySelector(`#tasks-wrapper .column[data-column-index='${columnIndex}']`).innerHTML = boxesRendered;
         }
@@ -279,25 +279,27 @@
         document.querySelectorAll('#tasks-wrapper .column:not(:last-child)').forEach(el => {
             el.querySelector('.new-box-button').addEventListener('click', event => {
                 const columnIndex = event.target.closest('.column').dataset.columnIndex;
-                const newBoxId = crypto.randomUUID();
-                boxes.push({ tags: [], id: newBoxId, columnIndex: columnIndex });
-                renderTasks();
-                document.querySelector(`.task-box[data-task-box-id='${newBoxId}'] .task-box-heading .button`).style.display = "none";
-                document.querySelector(`#new-tag-input-${newBoxId}`).style.display = "inline-flex";
-                document.querySelector(`#new-tag-input-${newBoxId}`).focus();
+                createAndRenderBoxInColumn(columnIndex);
             });
         });
 
         // add event listener for new column button
         document.querySelector('#tasks-wrapper .column:last-child .button').addEventListener('click', event => {
             numColumns++;
-            renderTasks();
+            createAndRenderBoxInColumn(numColumns-1);
         });
 
         // register box-specific events
         document.querySelectorAll('.task-box').forEach((el) => {
+            // delete box when delete button is pressed
+            el.querySelector('.task-box-heading .button.delete').addEventListener('click', event => {
+                const boxId = event.target.closest('.task-box').dataset.taskBoxId;
+                deleteBoxWithId(boxId);
+                renderTasks();
+            });
+
             // show new tag input when button is pressed
-            el.querySelector('.task-box-heading .button').addEventListener('click', event => {
+            el.querySelector('.task-box-heading label.button').addEventListener('click', event => {
                 event.target.style.display = "none";
                 event.target.parentElement.querySelector('input').style.display = "inline-flex";
             });
@@ -324,7 +326,7 @@
                 }
             });
 
-            // delete tag when delete button is clicked
+            // delete tag when delete button is pressed
             el.querySelectorAll('.task-box-heading .tag button.delete').forEach(deleteBtn => {
                 deleteBtn.addEventListener('click', event => {
                     const tagName = event.target.parentElement.dataset.tagName;
@@ -481,6 +483,15 @@
 
     // ----- box functions -----
 
+    function createAndRenderBoxInColumn(columnIndex) {
+        const newBoxId = crypto.randomUUID();
+        boxes.push({ tags: [], id: newBoxId, columnIndex: columnIndex });
+        renderTasks();
+        document.querySelector(`.task-box[data-task-box-id='${newBoxId}'] .task-box-heading .button`).style.display = "none";
+        document.querySelector(`#new-tag-input-${newBoxId}`).style.display = "inline-flex";
+        document.querySelector(`#new-tag-input-${newBoxId}`).focus();
+    }
+
     function getBoxIdForTaskEl(taskEl) {
        return taskEl.closest('.task-box').dataset.taskBoxId;
     }
@@ -497,11 +508,31 @@
         }
     }
 
+    function getBoxesInColumn(columnIndex) {
+        // put all boxes with undefined columnIndex or columnIndex >= numColumns in column 0
+        return boxes.filter(box =>
+            columnIndex == 0 && !(box.columnIndex > 0 && box.columnIndex < numColumns) || box.columnIndex == columnIndex);
+    }
+
     function deleteBoxWithId(boxId) {
+        let columnIndex;
+
+        // find and delete box with given boxId
         for (let [index, box] of boxes.entries()) {
             if (box.id== boxId) {
+                columnIndex = box.columnIndex;
                 boxes.splice(index, 1);
             }
+        }
+
+        // delete column if deleted box was the last box of this column
+        if (getBoxesInColumn(columnIndex).length == 0) {
+            // move all boxes right to the deleted column one column to the left
+            for (box of boxes) {
+                if (box.columnIndex != undefined && box.columnIndex > columnIndex) box.columnIndex--;
+            }
+
+            numColumns--;
         }
     }
 
