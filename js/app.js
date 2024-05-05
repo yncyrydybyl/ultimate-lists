@@ -353,12 +353,23 @@
             });
         }
 
+        // get tasks for box with given boxId
+        function getTasksForBox(boxId) {
+            const box = getBoxWithId(boxId);
+            const boxTasks = tasks.filter(task =>
+                task.tags.length > 0 && // make sure that task has tags
+                box.tags.every(boxTag => task.tags.includes(boxTag)) && // the task's tags must include every tag of the box
+                !boxes.some(otherBox => box.id != otherBox.id && otherBox.tags.every(boxTag => task.tags.includes(boxTag)) && box.tags.every(boxTag => otherBox.tags.includes(boxTag)) && !otherBox.tags.every(otherBoxTag => box.tags.includes(otherBoxTag))) // no other box exists that contains the task's tags AND contains the same but strictly more tags than the box in question
+                );
+            return boxTasks;
+        }
+
         for (box of boxes) {
             if (box.id == 'default') continue;
-            const box_tasks = tasks.filter(task => task.tags.length > 0 && box.tags.every(boxtag => task.tags.includes(boxtag)));
-            const rendered = Mustache.render(task_template, {tasks: sortTasksByPosition(box_tasks, box.id), "tagColor": getTagBackgroundColor, "tagTextColor": getTagTextColor});
+            const boxTasks = getTasksForBox(box.id);
+            const rendered = Mustache.render(task_template, {tasks: sortTasksByPosition(boxTasks, box.id), "tagColor": getTagBackgroundColor, "tagTextColor": getTagTextColor});
             document.getElementById('task-list-' + box.id).innerHTML = rendered;
-            tasks_in_boxes = tasks_in_boxes.concat(box_tasks);
+            tasks_in_boxes = tasks_in_boxes.concat(boxTasks);
         }
 
         // render remaining tasks in default box
