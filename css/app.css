@@ -75,6 +75,12 @@
 }
 
 .task-box[data-task-box-id='default'] .task-box-heading .tag.button {
+    /* do not show new tag button for default box */
+    display: none;
+}
+
+.task-box[data-task-box-id='default'] .task-box-heading .button.delete {
+    /* do not show delete button for default box */
     display: none;
 }
 
