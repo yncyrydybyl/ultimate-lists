@@ -21,6 +21,7 @@
 
     var inputMode = 'v'; // start in view mode
     var numColumns = 3;
+    var showBoxTagsInTasks = true;
 
     // handle global key events
     window.addEventListener('keydown', (event) => {
@@ -368,14 +369,14 @@
         for (box of boxes) {
             if (box.id == 'default') continue;
             const boxTasks = getTasksForBox(box.id);
-            const rendered = Mustache.render(task_template, {tasks: sortTasksByPosition(boxTasks, box.id), "tagColor": getTagBackgroundColor, "tagTextColor": getTagTextColor});
+            const rendered = Mustache.render(task_template, {tasks: sortTasksByPosition(boxTasks, box.id), "tagsWithOrWithoutBoxTags": tagsWithOrWithoutBoxTags(box.tags), "tagColor": getTagBackgroundColor, "tagTextColor": getTagTextColor});
             document.getElementById('task-list-' + box.id).innerHTML = rendered;
             tasks_in_boxes = tasks_in_boxes.concat(boxTasks);
         }
 
         // render remaining tasks in default box
         const remaining_tasks = tasks.filter(t => !tasks_in_boxes.includes(t));
-        const remaining_tasks_rendered = Mustache.render(task_template, {tasks: sortTasksByPosition(remaining_tasks, 'default'), "tagColor": getTagBackgroundColor, "tagTextColor": getTagTextColor});
+        const remaining_tasks_rendered = Mustache.render(task_template, {tasks: sortTasksByPosition(remaining_tasks, 'default'), "tagsWithOrWithoutBoxTags": tagsWithOrWithoutBoxTags([]), "tagColor": getTagBackgroundColor, "tagTextColor": getTagTextColor});
         document.getElementById('task-list-default').innerHTML = remaining_tasks_rendered;
 
         saveTaskPositions();
@@ -833,6 +834,19 @@
     // helper function for mustache to get tag shortcut
     function getTagShortCut() {
         return tags.map(t => t.name).indexOf(this["name"]) + 1;
+    }
+
+    // helper function for mustache to filter box-specific tags from a task's tags
+    function tagsWithOrWithoutBoxTags(boxTags) {
+        // closure that stores the boxTags variable
+        return function() {
+            console.log(showBoxTagsInTasks, boxTags);
+            if (showBoxTagsInTasks) {
+                return this.tags;
+            } else {
+                return this.tags.filter(t => !boxTags.includes(t));
+            }
+        }
     }
 
     function removeTagFromBox(tagName, boxId) {

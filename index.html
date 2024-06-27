@@ -58,7 +58,7 @@
     {{#tasks}}
     <article class="task" data-task-id="{{id}}" tabindex="0" draggable="true">
       <input type="checkbox"><h3 class="task-title">{{ title }}</h3>
-      <div class="tags">{{#tags}}<span class="tag" style="background-color: {{tagColor}}; color: {{tagTextColor}}">{{.}}</span>{{/tags}}</div>
+      <div class="tags">{{#tagsWithOrWithoutBoxTags}}<span class="tag" style="background-color: {{tagColor}}; color: {{tagTextColor}}">{{.}}</span>{{/tagsWithOrWithoutBoxTags}}</div>
     </article>
     {{/tasks}}
   </script>
