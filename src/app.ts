@@ -270,7 +270,7 @@
         // create boxes in columns
         const boxesTemplate = document.getElementById('boxes-template').innerHTML;
 
-        for (columnIndex in columns) {
+        for (let columnIndex in columns) {
             const columnBoxes = getBoxesInColumn(columnIndex);
             const boxesRendered = Mustache.render(boxesTemplate, { boxes: columnBoxes, "tagColor": getTagBackgroundColor, "tagTextColor": getTagTextColor });
             document.querySelector(`#tasks-wrapper .column[data-column-index='${columnIndex}']`).innerHTML = boxesRendered;
@@ -380,7 +380,7 @@
             return boxTasks;
         }
 
-        for (box of boxes) {
+        for (let box of boxes) {
             if (box.id == 'default') continue;
             const boxTasks = getTasksForBox(box.id);
             const rendered = Mustache.render(task_template, {tasks: sortTasksByPosition(boxTasks, box.id), "tagsWithOrWithoutBoxTags": tagsWithOrWithoutBoxTags(box.tags), "tagColor": getTagBackgroundColor, "tagTextColor": getTagTextColor});
@@ -528,7 +528,7 @@
     }
 
     function getBoxWithId(boxId) {
-        for (box of boxes) {
+        for (let box of boxes) {
             if (box.id == boxId) {
                 return box;
             }
@@ -546,7 +546,7 @@
 
         // find and delete box with given boxId
         for (let [index, box] of boxes.entries()) {
-            if (box.id== boxId) {
+            if (box.id == boxId) {
                 columnIndex = box.columnIndex;
                 boxes.splice(index, 1);
             }
@@ -555,7 +555,7 @@
         // delete column if deleted box was the last box of this column
         if (getBoxesInColumn(columnIndex).length == 0) {
             // move all boxes right to the deleted column one column to the left
-            for (box of boxes) {
+            for (let box of boxes) {
                 if (box.columnIndex != undefined && box.columnIndex > columnIndex) box.columnIndex--;
             }
 
@@ -595,10 +595,10 @@
         }
         const titleEl = taskEl.querySelector(`.task-title`);
         titleEl.setAttribute('contentEditable', true);
-        r = document.createRange();
+        const r = document.createRange();
         r.selectNodeContents(titleEl);
         r.collapse(false);
-        s = window.getSelection(),
+        const s = window.getSelection();
         s.removeAllRanges();
         s.addRange(r);
     }
@@ -841,18 +841,19 @@
 
     // helper function for mustache to get tag text color
     function getTagTextColor() {
-        // when used for tags-template, 'this' references a tag object
-        if ('color' in this) {
-            return pickTextColorBasedOnBackgroundColor(this.color);
-        }
-
-        // when used for tasks-template, 'this' references a tag name
-        for (let tag of tags) {
-            if (tag.name == this && 'color' in tag) {
-                return pickTextColorBasedOnBackgroundColor(tag.color);
+        if (typeof this === "string") {
+            // when used for tasks-template, 'this' references a tag name
+            for (let tag of tags) {
+                if (tag.name == this && 'color' in tag) {
+                    return pickTextColorBasedOnBackgroundColor(tag.color);
+                }
+            }
+        } else {
+            // when used for tags-template, 'this' references a tag object
+            if ('color' in this) {
+                return pickTextColorBasedOnBackgroundColor(this.color);
             }
         }
-
         return "black";
     }
 
@@ -865,7 +866,6 @@
     function tagsWithOrWithoutBoxTags(boxTags) {
         // closure that stores the boxTags variable
         return function() {
-            console.log(showBoxTagsInTasks, boxTags);
             if (showBoxTagsInTasks) {
                 return this.tags;
             } else {
