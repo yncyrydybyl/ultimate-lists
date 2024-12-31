@@ -104,10 +104,21 @@
     background-color: rgba(10,10,10,.4);
 }
 
+.task-box .new-task-placeholder {
+    color: #999;
+    font-style: italic;
+    cursor: pointer;
+}
+
+.task-box .new-task-placeholder input[type="checkbox"] {
+    opacity: .5;
+}
+
 .task-list .task:focus {
     background-color: #eee;
 }
 
+.task-box .new-task-placeholder .task-title,
 .task-list article .task-title {
     display: inline-block;
     margin-left: .5em;
@@ -122,6 +133,7 @@
     margin-left: .25em;
 }
 
+.task-box .new-task-placeholder input[type="checkbox"],
 .task-list article input[type='checkbox'] {
     vertical-align:middle;
     margin-left: .3em;

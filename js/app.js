@@ -124,9 +124,9 @@
         } else if (inputMode == 'i' && event.key == 'Escape') {
             // handle escape key event
             console.log('return to view mode');
-            const focusedTitle = document.querySelector('.task .task-title:focus');
+            const focusedTitle = event.target.closest('.task-box').querySelector('.task .task-title:focus');
             if (focusedTitle != null) {
-                // this will unfocus the title element which will trigger the 'focusout' event handler
+                // this will unfocus the title element which will also trigger the 'focusout' event handler
                 focusedTitle.setAttribute('contentEditable', false);
                 let taskEl = focusedTitle.parentElement;
                 taskEl.focus();
@@ -276,7 +276,7 @@
             document.querySelector(`#tasks-wrapper .column[data-column-index='${columnIndex}']`).innerHTML = boxesRendered;
         }
 
-        // add event listeners for column buttons
+        // add event listeners for new box button (below each column)
         document.querySelectorAll('#tasks-wrapper .column:not(:last-child)').forEach(el => {
             el.querySelector('.new-box-button').addEventListener('click', event => {
                 const columnIndex = event.target.closest('.column').dataset.columnIndex;
@@ -284,7 +284,7 @@
             });
         });
 
-        // add event listener for new column button
+        // add event listener for new column button (last column, right next to the task columns)
         document.querySelector('#tasks-wrapper .column:last-child .button').addEventListener('click', event => {
             numColumns++;
             createAndRenderBoxInColumn(numColumns-1);
@@ -338,6 +338,20 @@
                     }
                     renderTasks();
                 });
+            });
+
+            el.querySelectorAll('.new-task-placeholder').forEach(newTaskPlaceholder => {
+                newTaskPlaceholder.addEventListener('click', event => {
+                    event.preventDefault();
+                    const parentTaskBox = event.currentTarget.parentElement;
+                    let newTask = newTaskInTaskBoxEl(parentTaskBox);
+                    renderTasks();
+                    focusTaskTitle(getTaskElById(newTask.id));
+
+                    // hide .new-task-placeholder
+                    getTaskElById(newTask.id).closest('.task-box').querySelector('.new-task-placeholder').style.display = "none";
+                    inputMode = 'i';
+                })
             });
         });
 
@@ -777,15 +791,26 @@
     }
 
     // add new task after task with given id
-    function newTaskAfterTaskEl(taskEl) {
+    function newTaskInTaskBox(boxId, position) {
         const newTaskId = crypto.randomUUID();
-        const boxId = getBoxIdForTaskEl(taskEl);
         const boxPositions = {};
-        boxPositions[boxId] = getBoxPositionForTaskEl(taskEl) + 0.5; // add task between taskEl and next task element
+        boxPositions[boxId] = position;
         const tags = getBoxWithId(boxId).tags;
         const newTask = createTask(newTaskId, boxPositions, tags);
         tasks.push(newTask);
         return newTask;
+    }
+
+    function newTaskInTaskBoxEl(boxEl) {
+        const boxId = boxEl.dataset.taskBoxId;
+        const position = undefined;
+        return newTaskInTaskBox(boxId, position);
+    }
+
+    function newTaskAfterTaskEl(taskEl) {
+        const boxId = getBoxIdForTaskEl(taskEl);
+        const position = getBoxPositionForTaskEl(taskEl) + 0.5; // add task between taskEl and next task element
+        return newTaskInTaskBox(boxId, position);
     }
 
     // ----- tag functions -----
