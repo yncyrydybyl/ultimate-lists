@@ -1,8 +1,12 @@
+.column {
+    padding: .5rem;
+}
+
 .task-box {
-    box-shadow: 0 0 .2em gray;
-    border-radius: .4em;
-    margin-bottom: 2em;
-    padding: .25em;
+    box-shadow: 0 0 .2em lightgray;
+    padding: .25rem;
+    margin-bottom: .5em;
+    padding-bottom: .25rem;
 }
 
 .task-box h2 {
