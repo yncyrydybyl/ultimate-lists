@@ -8,4 +8,7 @@ A keyboard-first, tag-based list and task management web app optimized for high-
 - text files have no tagging/grouping/deadline features, but this tool has :)
 
 ## How to build
-This project uses TypeScript. First, compile using `tsc` or `tsc --watch` before opening `index.html` in your browser.
+This project uses TypeScript. First, compile using `tsc` or `tsc --watch`.
+
+## How to run
+The project uses js modules. Hence, files need to be served via a webserver. Run `python -m http.server` and visit `http://localhost:8000/` for local development.
