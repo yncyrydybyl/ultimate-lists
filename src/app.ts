@@ -1,6 +1,6 @@
 import { Config } from "./types.js"
 import { renderTags, renderTasks } from "./render.js";
-import { focusTaskByRef, focusTaskTitle, focusTaskTitleByRef, getFocusedTaskElement, getLastTaskEl, getTaskElAfterTaskEl, getTaskElBeforeTaskEl, getTaskElById, getTaskIdForTaskElement, getTaskRef, newTaskAfterTaskEl, newTaskInTaskBox, saveTaskPositions, toggleTagForTaskId } from "./helpers.js"
+import { focusTaskBelowFocusedTaskOrFirstTask, focusTaskAboveFocusedTaskOrLastTask, focusTaskByRef, focusTaskTitle, focusTaskTitleByRef, getFocusedTaskElement, getTaskElById, getTaskIdForTaskElement, getTaskRef, newTaskAfterTaskEl, newTaskInTaskBox, saveTaskPositions, toggleTagForTaskId } from "./helpers.js"
 
 declare global {
     var config: Config;
@@ -37,40 +37,14 @@ window.addEventListener('keydown', (event: KeyboardEvent) => {
             return;
         }
 
-        const focusedTask: HTMLElement | null = document.querySelector(`.task:focus`);
-        if (focusedTask != null) {
-            // focus next task
-            let nextTask = getTaskElAfterTaskEl(focusedTask);
-            if (nextTask) {
-                nextTask.focus();
-            }
-        } else {
-            // no focused task found => focus first task
-            const firstTask: HTMLElement | null = document.querySelector('.task');
-            if (firstTask) {
-                firstTask.focus();
-            }
-        }
+        focusTaskBelowFocusedTaskOrFirstTask();
     } else if (config.inputMode == 'v' && (event.key == 'k' || event.key == 'ArrowUp')) {
         // handle k event
         if (event.target instanceof HTMLInputElement) {
             return;
         }
 
-        const focusedTask: HTMLElement | null = document.querySelector(`.task:focus`);
-        if (focusedTask != null) {
-            // focus previous task
-            let previousTask = getTaskElBeforeTaskEl(focusedTask);
-            if (previousTask) {
-                previousTask.focus();
-            }
-        } else {
-            // no focused task found => focus last task
-            const lastTaskEl = getLastTaskEl();
-            if (lastTaskEl) {
-                lastTaskEl.focus();
-            }
-        }
+        focusTaskAboveFocusedTaskOrLastTask();
     } else if (config.inputMode == 'v' && event.key == "K") {
         // move task up
         const focusedTask: HTMLElement | null = document.querySelector(`.task:focus`);
@@ -117,8 +91,8 @@ window.addEventListener('keydown', (event: KeyboardEvent) => {
         }
         event.preventDefault();
         let newTask;
-        const focusedTask = document.querySelector(`.task:focus`) as HTMLElement;
-        if (focusedTask) {
+        const focusedTask = document.querySelector(`.task:focus`);
+        if (focusedTask instanceof HTMLElement) {
             newTask = newTaskAfterTaskEl(focusedTask);
         } else {
             newTask = newTaskInTaskBox("default");
@@ -143,8 +117,12 @@ window.addEventListener('keydown', (event: KeyboardEvent) => {
         // handle ctr+[0-9] key event
         console.log("ctrl", event.key);
         const focusedTaskEl = getFocusedTaskElement();
-        const taskId = getTaskIdForTaskElement(focusedTaskEl);
-        const taskRef = getTaskRef(focusedTaskEl);
+        if (!focusedTaskEl.success) {
+            console.log("no task is focused");
+            return;
+        }
+        const taskId = getTaskIdForTaskElement(focusedTaskEl.value);
+        const taskRef = getTaskRef(focusedTaskEl.value);
 
         const tagIndex = parseInt(event.key) == 0 ? 9 : parseInt(event.key) - 1;
 

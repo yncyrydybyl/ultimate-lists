@@ -243,9 +243,12 @@ export function renderTasks() {
 
                 // only create new task if current task title is not empty
                 const focusedTaskEl = getFocusedTaskElement();
-                if (getTaskTitleFromTaskElement(focusedTaskEl) != '') {
-                    let newTask = newTaskAfterTaskEl(focusedTaskEl);
-                    saveNewTagsForTask(focusedTaskEl);
+                if (!focusedTaskEl.success) {
+                    throw new Error("focusedTaskEl.success unexpectedly false");
+                }
+                if (getTaskTitleFromTaskElement(focusedTaskEl.value) != '') {
+                    let newTask = newTaskAfterTaskEl(focusedTaskEl.value);
+                    saveNewTagsForTask(focusedTaskEl.value);
                     renderTasks();
                     focusTaskTitle(getTaskElById(newTask.id));
                 }
@@ -261,13 +264,16 @@ export function renderTasks() {
                     event.preventDefault();
                 }
                 const focusedTaskEl = getFocusedTaskElement();
-                const focusedTaskRef = getTaskRef(focusedTaskEl);
-                if (focusedTaskEl.querySelector('.task-title .tag')) {
+                if (!focusedTaskEl.success) {
+                    throw new Error("focusedTaskEl.success unexpectedly false");
+                }
+                const focusedTaskRef = getTaskRef(focusedTaskEl.value);
+                if (focusedTaskEl.value.querySelector('.task-title .tag')) {
                     // when new tag is being created, save tag
-                    saveNewTagsForTask(focusedTaskEl);
+                    saveNewTagsForTask(focusedTaskEl.value);
                     renderTasks();
                     focusTaskTitleByRef(focusedTaskRef);
-                } else if (event.key == "Tab" && getTaskTitleFromTaskElement(focusedTaskEl) != '') {
+                } else if (event.key == "Tab" && getTaskTitleFromTaskElement(focusedTaskEl.value) != '') {
                     // when tab key is pressed and task title is not empty, unfocus task title and focus task
                     renderTasks();
                     focusTaskByRef(focusedTaskRef);

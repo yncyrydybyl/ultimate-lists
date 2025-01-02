@@ -2,6 +2,18 @@ import { renderTasks } from "./render.js";
 import { Box, BoxPositions, Tag, Task, TaskRef } from "./types.js";
 import { pickTextColorBasedOnBackgroundColor } from "./utils.js";
 
+// ----- Result helper functions -----
+
+type Result<T> = { success: true, value: T } | { success: false, error: Error };
+
+function Ok<T>(value: T): { success: true, value: T} {
+    return { success: true, value: value };
+}
+
+function Err(error: Error): { success: false, error: Error} {
+    return { success: false, error: error };
+}
+
 // ----- tag helper functions -----
 
 export function newTagElement(tagText: string) {
@@ -191,16 +203,16 @@ export function focusTaskTitleByRef(taskRef: TaskRef) {
     }
 }
 
-export function getFocusedTaskElement(): HTMLElement {
+export function getFocusedTaskElement(): Result<HTMLElement>{
     let focusedElement: HTMLElement = document.querySelector('*:focus')!;
     if (focusedElement == null) {
-        throw "could not find focused task element: no element is focused"
+        return Err(new Error("could not find focused task element: no element is focused"));
     } else if (focusedElement.classList.contains('task')) {
-        return focusedElement;
-    } else if (focusedElement.parentElement!.classList.contains('task')) {
-        return focusedElement.parentElement!;
+        return Ok(focusedElement);
+    } else if (focusedElement.parentElement?.classList.contains('task')) {
+        return Ok(focusedElement.parentElement);
     } else {
-        throw "could not find focused task element: focused element is neither task, nor task title"
+        return Err(new Error("could not find focused task element: focused element is neither task, nor task title"));
     }
 }
 
@@ -221,54 +233,91 @@ export function getTaskIdForTaskElement(el: HTMLElement): string {
     return el.dataset!.taskId!;
 }
 
-// get next task after task with given task id or task element
-// returns task with given task id if no next task exists
-export function getTaskElAfterTaskEl(taskEl: HTMLElement): HTMLElement {
-    if (!(taskEl instanceof HTMLElement)) {
-        console.error('taskEl is not an instance of HTMLElement', taskEl);
+// get next task after focused task
+function getTaskElBelowFocusedTask(): Result<HTMLElement> {
+    const focusedTaskEl = getFocusedTaskElement();
+    if (!focusedTaskEl.success) {
+        return Err(focusedTaskEl.error);
     }
 
-    if (taskEl.nextElementSibling) {
+    if (focusedTaskEl.value.nextElementSibling && focusedTaskEl.value.nextElementSibling instanceof HTMLElement) {
         // return next sibling in current task box
-        return taskEl.nextElementSibling as HTMLElement;
-    } else {
-        // find next task box
-        let nextParentSibling = taskEl.closest('.task-box')!.nextElementSibling;
-        while(nextParentSibling) {
-            // find first task in next task box
-            let nextSibling = nextParentSibling.querySelector('.task');
-            if (nextSibling instanceof HTMLElement) {
-                return nextSibling;
-            } else {
-                // if task box does not contain any task, continue with next task box
-                nextParentSibling = nextParentSibling.nextElementSibling;
-            }
-        }
+        return Ok(focusedTaskEl.value.nextElementSibling);
     }
-    return document.querySelector('.task')!;
+
+    let taskBoxEl = focusedTaskEl.value.closest('.task-box')!.nextElementSibling;
+    let columnEl = focusedTaskEl.value.closest('.column');
+    while (columnEl) {
+        // find next task box in column
+        while(taskBoxEl) {
+            // find first task in task box
+            let taskEl = taskBoxEl.querySelector('.task');
+            if (taskEl instanceof HTMLElement) {
+                return Ok(taskEl);
+            }
+
+            // if task box does not contain any tasks, continue with next task box
+            taskBoxEl = taskBoxEl.nextElementSibling;
+        }
+        // if column does no contain further task boxes, continue with next column
+        columnEl = columnEl.nextElementSibling
+        taskBoxEl = columnEl?.querySelector('.task-box')!;
+    }
+    return Err(new Error("no task below focused task found"));
+}
+
+export function focusTaskBelowFocusedTaskOrFirstTask() {
+    const taskBelowFocusedTask = getTaskElBelowFocusedTask();
+    if (taskBelowFocusedTask.success) {
+        taskBelowFocusedTask.value.focus();
+    } else {
+        // no focused task found => focus first task
+        const firstTask = getFirstTaskEl();
+        if (firstTask instanceof HTMLElement) firstTask.focus();
+    }
 }
 
 // get previous task before task with given task id or task element
-export function getTaskElBeforeTaskEl(taskEl: HTMLElement): HTMLElement {
-    if (taskEl.previousElementSibling) {
-        // return previous sibling in current task box
-        return taskEl.previousElementSibling as HTMLElement;
-    } else {
-        // find previous task box
-        let prevParentSibling = taskEl.closest('.task-box')!.previousElementSibling;
-        while(prevParentSibling){
-            // find last task in previous task box
-            let prevSibling = prevParentSibling.querySelector('.task:last-of-type') as HTMLElement;
-            if (prevSibling) {
-                return prevSibling;
-            } else {
-                // if task box does not contain any task, continue with previous task box
-                prevParentSibling = prevParentSibling.previousElementSibling;
-            }
-        }
+function getTaskElAboveFocusedTask(): Result<HTMLElement> {
+    const focusedTaskEl = getFocusedTaskElement();
+    if (!focusedTaskEl.success) {
+        return Err(focusedTaskEl.error);
     }
-    // return last task
-    return getLastTaskEl();
+
+    if (focusedTaskEl.value.previousElementSibling && focusedTaskEl.value.previousElementSibling instanceof HTMLElement) {
+        // return previous sibling in current task box
+        return Ok(focusedTaskEl.value.previousElementSibling);
+    }
+
+    let taskBoxEl = focusedTaskEl.value.closest('.task-box')!.previousElementSibling;
+    let columnEl = focusedTaskEl.value.closest('.column');
+    while (columnEl) {
+        // find previous task box
+        while(taskBoxEl){
+            // find last task in previous task box
+            let taskEl = taskBoxEl.querySelector('.task:last-of-type') as HTMLElement;
+            if (taskEl instanceof HTMLElement) {
+                return Ok(taskEl);
+            }
+            // if task box does not contain any task, continue with previous task box
+            taskBoxEl = taskBoxEl.previousElementSibling;
+        }
+        // if column does no contain further task boxes, continue with previous column
+        columnEl = columnEl.previousElementSibling
+        taskBoxEl = columnEl?.querySelector('.task-box:last-of-type')!;
+    }
+    return Err(new Error("no task above focused task found"));
+}
+
+export function focusTaskAboveFocusedTaskOrLastTask() {
+    const taskAboveFocusedTask = getTaskElAboveFocusedTask();
+    if (taskAboveFocusedTask.success) {
+        taskAboveFocusedTask.value.focus();
+    } else {
+        // no focused task found => focus last task
+        const lastTaskEl = getLastTaskEl();
+        if (lastTaskEl) lastTaskEl.focus();
+    }
 }
 
 // get re-render-safe reference to specific task in specific box
@@ -290,8 +339,8 @@ export function getLastTaskEl(): HTMLElement {
     return document.querySelector('.task')!;
 }
 
-export function getFirstTaskEl(): HTMLElement {
-    return document.querySelector('.task')!;
+export function getFirstTaskEl(): HTMLElement | null {
+    return document.querySelector('.task');
 }
 
 export function getTaskTitleFromTaskElement(taskEl: HTMLElement) {
