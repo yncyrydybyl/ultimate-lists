@@ -186,8 +186,8 @@ declare var Mustache: any
 
     // handle enter key on new tag input
     document.getElementById('new-tag-input')!.addEventListener('keydown', (event) => {
-        if (event.key == 'Enter' && event.target instanceof HTMLInputElement && event.target.value.trim() != '') {
-            tags.push({"name": event.target.value.trim() });
+        if (event.key == 'Enter' && event.target instanceof HTMLInputElement && event.target.value.trim().replace(/^#/, "") != '') {
+            tags.push({"name": event.target.value.trim().replace(/^#/, "") });
             event.target.value = '';
             renderTags();
         }
@@ -339,12 +339,12 @@ declare var Mustache: any
 
             // add new tag when enter key is pressed
             el.querySelector('.task-box-heading input')!.addEventListener('keydown', (event) => {
-                if (event instanceof KeyboardEvent && event.key == 'Enter' && (event.target as HTMLInputElement).value.trim() != '') {
+                if (event instanceof KeyboardEvent && event.key == 'Enter' && (event.target as HTMLInputElement).value.trim().replace(/^#/, "") != '') {
                     const boxId = (el as HTMLElement).dataset.taskBoxId;
 
                     for (let box of boxes) {
                         if (box.id == boxId) {
-                            box.tags.push((event.target as HTMLInputElement).value.trim());
+                            box.tags.push((event.target as HTMLInputElement).value.trim().replace(/^#/, ""));
                         };
                     }
 
