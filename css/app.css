@@ -1,17 +1,17 @@
 .column {
     padding: .5rem;
+    flex-basis: auto;
+    font-size: 1em;
+    font-size: 11.5pt;
 }
 
 .task-box {
-    box-shadow: 0 0 .2em lightgray;
-    padding: .25rem;
     margin-bottom: .5em;
-    padding-bottom: .25rem;
 }
 
 .task-box h2 {
     font-weight: 500;
-    padding-bottom: .3em;
+    padding-bottom: .2em;
 }
 
 .tag-list-wrapper {
@@ -131,6 +131,8 @@
     flex-grow: 1;
     margin-left: .5em;
     padding-right: .5em;
+    vertical-align: middle;
+    line-height: 1.4em;
 }
 
 .task-list article .tags {
@@ -138,6 +140,9 @@
 }
 .task-list article .tag {
     margin-left: .25em;
+    margin-bottom: 0;
+    height: 1.8em;
+    vertical-align: top;
 }
 
 .task-box .new-task-placeholder input[type="checkbox"],
