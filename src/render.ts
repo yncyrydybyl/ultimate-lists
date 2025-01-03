@@ -237,7 +237,7 @@ export function renderTasks() {
     // register task-specific key events
     document.querySelectorAll('.task .task-title').forEach((el) => {
         (el as HTMLElement).addEventListener('keydown', (event: KeyboardEvent) => {
-            if (event.keyCode == 13) { // enter
+            if (event.key == 'Enter') {
                 // catch key press of 'enter' key on task titles
                 event.preventDefault();
 
@@ -247,6 +247,10 @@ export function renderTasks() {
                     throw new Error("focusedTaskEl.success unexpectedly false");
                 }
                 if (getTaskTitleFromTaskElement(focusedTaskEl.value) != '') {
+                    // save current task
+                    saveTaskTitle(focusedTaskEl.value); // this is required when pasting text via middle mouse button (no keyup event fired yet)
+
+                    // create new task after current task
                     let newTask = newTaskAfterTaskEl(focusedTaskEl.value);
                     saveNewTagsForTask(focusedTaskEl.value);
                     renderTasks();
