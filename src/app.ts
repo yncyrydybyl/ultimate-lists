@@ -50,7 +50,7 @@ globalThis.config = new Proxy(configObj, {
             case "numColumns":
                 obj.numColumns = value;
                 break;
-            case "showBoxTagsInTask":
+            case "showBoxTagsInTasks":
                 obj.showBoxTagsInTasks = value;
                 break;
             case "tasks":
