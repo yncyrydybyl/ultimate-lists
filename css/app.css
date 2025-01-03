@@ -118,15 +118,18 @@
     opacity: .5;
 }
 
-.task-list .task:focus {
+.task:focus {
     background-color: #eee;
 }
 
-.task-box .new-task-placeholder .task-title,
-.task-list article .task-title {
-    display: inline-block;
+.task, .new-task-placeholder {
+    display: flex;
+    align-items: baseline;
+}
+
+.task-title {
+    flex-grow: 1;
     margin-left: .5em;
-    vertical-align: middle;
     padding-right: .5em;
 }
 
