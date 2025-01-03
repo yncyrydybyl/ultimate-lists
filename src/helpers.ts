@@ -184,6 +184,14 @@ export function focusTaskTitle(taskEl: HTMLElement) {
     }
     const titleEl = taskEl.querySelector(`.task-title`)!;
     titleEl.setAttribute('contentEditable', "true");
+
+    // prevent user from pasting rich text (only text/plain allowed)
+    titleEl.addEventListener('paste', (e) => {
+        e.preventDefault()
+        var text = (e as ClipboardEvent).clipboardData?.getData('text/plain')
+        document.execCommand('insertText', false, text)
+    });
+
     const r = document.createRange();
     r.selectNodeContents(titleEl);
     r.collapse(false);
