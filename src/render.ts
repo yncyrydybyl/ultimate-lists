@@ -306,7 +306,14 @@ export function renderTasks() {
         // update task title on keyup
         (el as HTMLElement).addEventListener('keyup', (event: KeyboardEvent) => {
             if (event.key != "Enter") {
-                saveTaskTitle((event.target! as HTMLElement).parentElement!);
+                if (!(event.target instanceof HTMLElement)) {
+                    throw new Error("event.target unexpectedly no instance of HTMLElement");
+                }
+
+                const taskEl: HTMLElement | null = event.target.closest('.task');
+                if (!taskEl) throw new Error("taskEl unexpectedly not found")
+
+                saveTaskTitle(taskEl);
             }
         });
 
