@@ -2,32 +2,75 @@ import { Config } from "./types.js"
 import { renderTags, renderTasks } from "./render.js";
 import { focusTaskBelowFocusedTaskOrFirstTask, focusTaskAboveFocusedTaskOrLastTask, focusTaskByRef, focusTaskTitle, focusTaskTitleByRef, getFocusedTaskElement, getTaskElById, getTaskIdForTaskElement, getTaskRef, newTaskAfterTaskEl, newTaskInTaskBox, saveTaskPositions, toggleTagForTaskId } from "./helpers.js"
 
+let configObj: Config;
+
+// read config from localStorage
+let configFromLocalstorage = localStorage.getItem('ultimateLists.config');
+if (configFromLocalstorage) {
+    configObj = JSON.parse(configFromLocalstorage);
+} else {
+    // populate default config
+    configObj = {
+        inputMode: 'v', // start in view mode
+        numColumns: 3,
+        showBoxTagsInTasks: true,
+        tasks: [
+            { title: 'my prio high task', id: crypto.randomUUID(), tags: ['today', 'orga'] },
+            { title: 'my 2nd task', id: crypto.randomUUID(), tags: ['focus'] }
+        ],
+        tags: [
+            { name: "prio::high", color: 'crimson' },
+            { name: "today", color: 'green' },
+            { name: "focus", color: 'gold' },
+            { name: "orga", color: 'darkcyan' },
+        ],
+        boxes: [
+            { name: "Inbox", tags: [], id: 'default'},
+            { tags: ['orga', 'today'], id: crypto.randomUUID(), columnIndex: 1 },
+            { tags: ['orga'], id: crypto.randomUUID(), columnIndex: 1 },
+            { tags: ['focus', 'today'], id: crypto.randomUUID(), columnIndex: 2 },
+            { tags: ['focus'], id: crypto.randomUUID(), columnIndex: 2 },
+        ],
+    };
+}
+
+
 declare global {
     var config: Config;
 }
- 
-globalThis.config = {
-    inputMode: 'v', // start in view mode
-    numColumns: 3,
-    showBoxTagsInTasks: true,
-    tasks: [
-        { title: 'my prio high task', id: crypto.randomUUID(), tags: ['today', 'orga'] },
-        { title: 'my 2nd task', id: crypto.randomUUID(), tags: ['focus'] }
-    ],
-    tags: [
-        { name: "prio::high", color: 'crimson' },
-        { name: "today", color: 'green' },
-        { name: "focus", color: 'gold' },
-        { name: "orga", color: 'darkcyan' },
-    ],
-    boxes: [
-        { name: "Inbox", tags: [], id: 'default'},
-        { tags: ['orga', 'today'], id: crypto.randomUUID(), columnIndex: 1 },
-        { tags: ['orga'], id: crypto.randomUUID(), columnIndex: 1 },
-        { tags: ['focus', 'today'], id: crypto.randomUUID(), columnIndex: 2 },
-        { tags: ['focus'], id: crypto.randomUUID(), columnIndex: 2 },
-    ],
-};
+
+globalThis.config = new Proxy(configObj, {
+    set(obj: Config, prop, value) {
+        // using swtich-case here because `obj[prop] = value` would result in type collapsing to `never`
+        // see https://github.com/microsoft/TypeScript/issues/47295#issuecomment-1004269198
+        switch(prop) {
+            case "inputMode":
+                obj.inputMode = value;
+                break;
+            case "numColumns":
+                obj.numColumns = value;
+                break;
+            case "showBoxTagsInTask":
+                obj.showBoxTagsInTasks = value;
+                break;
+            case "tasks":
+                obj.tasks = value;
+                break;
+            case "tags":
+                obj.tags = value;
+                break;
+            case "boxes":
+                obj.boxes = value;
+                break;
+            default:
+                throw new Error(`Invalid modification to config object. Property '${prop.toString()}' does not exist.`);
+        }
+
+        // store config object in localStorage
+        localStorage.setItem('ultimateLists.config', JSON.stringify(config));
+        return true;
+    }
+});
 
 // handle global key events
 window.addEventListener('keydown', (event: KeyboardEvent) => {
