@@ -124,6 +124,7 @@ window.addEventListener('keydown', (event: KeyboardEvent) => {
         }
     } else if (config.inputMode == 'v' && event.code == "Space") {
         // handle space key event
+        event.preventDefault(); // prevent scrolling down
         const focusedTaskCheckbox = document.querySelector(`.task:focus input`);
         if (focusedTaskCheckbox) {
             focusedTaskCheckbox.toggleAttribute('checked');
