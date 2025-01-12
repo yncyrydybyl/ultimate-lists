@@ -12,3 +12,7 @@ This project uses TypeScript. First, compile using `tsc` or `tsc --watch`.
 
 ## How to run
 The project uses js modules. Hence, files need to be served via a webserver. Run `python -m http.server` and visit `http://localhost:8000/` for local development.
+
+## License
+
+This program is free software: you can redistribute it and/or modify it under the terms of the [GNU Affero General Public License](./LICENSE.md) as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
