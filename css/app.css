@@ -150,3 +150,10 @@
     vertical-align:middle;
     margin-left: .3em;
 }
+
+.footer {
+    padding-top: 1.6rem;
+    padding-bottom: 1.5rem;
+    margin-top: 3rem;
+    text-align: right;
+}
