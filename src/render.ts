@@ -1,5 +1,5 @@
-import { getBoxesInColumn, createAndRenderBoxInColumn, deleteBoxWithId, newTaskInTaskBoxEl, focusTaskTitle, getTaskElById, getBoxWithId, saveTaskPositions, getFocusedTaskElement, getTaskTitleFromTaskElement, newTaskAfterTaskEl, saveNewTagsForTask, getTaskRef, focusTaskTitleByRef, focusTaskByRef, saveTaskTitle, getTaskIdForTaskElement, getFirstTaskEl, deleteTag, getTagBackgroundColor, getTagShortCut, getTagTextColor, newTagElement, removeTagFromBox, setTagColor, tagsWithOrWithoutBoxTags } from "./helpers.js";
-import { Task } from "./types.js";
+import { getBoxesInColumn, createAndRenderBoxInColumn, deleteBoxWithId, newTaskInTaskBoxEl, focusTaskTitle, getTaskElById, getBoxWithId, saveTaskPositions, getFocusedTaskElement, getTaskTitleFromTaskElement, newTaskAfterTaskEl, saveNewTagsForTask, getTaskRef, focusTaskTitleByRef, focusTaskByRef, saveTaskTitle, getTaskIdForTaskElement, getFirstTaskEl, deleteTag, getTagBackgroundColor, getTagShortCut, getTagTextColor, newTagElement, removeTagFromBox, setTagColor, tagsWithOrWithoutBoxTags, getTaskByTaskId } from "./helpers.js";
+import { Task, TaskStatus } from "./types.js";
 import { rgba2hex } from "./utils.js";
 
 declare var Mustache: any
@@ -223,7 +223,35 @@ export function renderTasks() {
         if (box.id == 'default') continue;
         const boxTasks = getTasksForBox(box.id);
         const rendered = Mustache.render(task_template, {tasks: sortTasksByPosition(boxTasks, box.id), "tagsWithOrWithoutBoxTags": tagsWithOrWithoutBoxTags(box.tags), "tagColor": getTagBackgroundColor, "tagTextColor": getTagTextColor});
-        document.getElementById('task-list-' + box.id)!.innerHTML = rendered;
+        const taskListEl = document.getElementById('task-list-' + box.id)!;
+        taskListEl.innerHTML = rendered;
+
+        // render task status
+        taskListEl.querySelectorAll('.task').forEach(taskEl => {
+            if (!(taskEl instanceof HTMLElement)) {
+                throw new Error("taskEl unexpectedly no instance of HTMLElement");
+            }
+            const checkboxEl = taskEl.querySelector('input[type="checkbox"]');
+            if (checkboxEl == null || !(checkboxEl instanceof HTMLInputElement)) {
+                throw new Error("checkoxEl unexpectedly null or no instance of HTMLInputElement");
+            }
+            const taskStatus = getTaskByTaskId(getTaskIdForTaskElement(taskEl));
+            if (!taskStatus.success) {
+                throw new Error("taskStatus unexpectedly could not be retrieved");
+            }
+
+            switch(taskStatus.value.status) {
+                case TaskStatus.InProgress:
+                    checkboxEl.setAttribute('checked', 'false');
+                    checkboxEl.indeterminate = true;
+                    break;
+                case TaskStatus.Done:
+                    checkboxEl.setAttribute('checked', 'true');
+                    break;
+            }
+        });
+
+
         tasks_in_boxes = tasks_in_boxes.concat(boxTasks);
     }
 

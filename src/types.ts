@@ -7,9 +7,16 @@ export type Config = {
     boxes: Box[],
 };
 
+export enum TaskStatus {
+    New = "new",
+    InProgress = "in_progress",
+    Done = "done",
+}
+
 export type Task = {
     title: string,
     id: string,
+    status: TaskStatus,
     tags: string[],
     boxPositions?: BoxPositions,
 };

@@ -1,5 +1,5 @@
 import { renderTasks } from "./render.js";
-import { Box, BoxPositions, Tag, Task, TaskRef } from "./types.js";
+import { Box, BoxPositions, Tag, Task, TaskRef, TaskStatus } from "./types.js";
 import { pickTextColorBasedOnBackgroundColor } from "./utils.js";
 
 // ----- Result helper functions -----
@@ -154,12 +154,13 @@ export function deleteBoxWithId(boxId: string) {
 
 // ----- task helper functions -----
 
-export function createTask(taskId: string, boxPositions: BoxPositions, tags: string[]) {
+export function createTask(taskId: string, boxPositions: BoxPositions, tags: string[]): Task {
     if (boxPositions == null) boxPositions = {};
     if (tags == null) tags = [];
     return {
         title: '',
         id: taskId,
+        status: TaskStatus.New,
         tags: structuredClone(tags),
         boxPositions: boxPositions,
     }
@@ -351,6 +352,15 @@ export function getFirstTaskEl(): HTMLElement | null {
     return document.querySelector('.task');
 }
 
+export function getTaskByTaskId(taskId: string): Result<Task> {
+    for (let task of config.tasks) {
+        if (task.id == taskId) {
+            return Ok(task);
+        }
+    }
+    return Err(new Error(`task with taskId ${taskId} not found.`));
+}
+
 export function getTaskTitleFromTaskElement(taskEl: HTMLElement) {
     let title = '';
     for (var i = 0; i < taskEl.querySelector('.task-title')!.childNodes.length; ++i) {
@@ -422,6 +432,28 @@ export function toggleTagForTaskId(taskId: string, tagName: string) {
             break;
         }
     }
+}
+
+export function toggleTaskStatus(taskId: string) {
+    for (let task of config.tasks) {
+        if (task.id == taskId) {
+            switch (task.status) {
+                case TaskStatus.Done:
+                    task.status = TaskStatus.InProgress;
+                    config.numColumns = config.numColumns; // FIXME: hack to trigger localstorage.setItem
+                    break;
+                case TaskStatus.InProgress:
+                    task.status = TaskStatus.New;
+                    config.numColumns = config.numColumns; // FIXME: hack to trigger localstorage.setItem
+                    break;
+                default:
+                    task.status = TaskStatus.Done;
+                    config.numColumns = config.numColumns; // FIXME: hack to trigger localstorage.setItem
+                    break;
+            }
+        }
+    }
+
 }
 
 // add new task after task with given id

@@ -1,6 +1,6 @@
-import { Config } from "./types.js"
+import { Config, TaskStatus } from "./types.js"
 import { renderTags, renderTasks } from "./render.js";
-import { focusTaskBelowFocusedTaskOrFirstTask, focusTaskAboveFocusedTaskOrLastTask, focusTaskByRef, focusTaskTitle, focusTaskTitleByRef, getFocusedTaskElement, getTaskElById, getTaskIdForTaskElement, getTaskRef, newTaskAfterTaskEl, newTaskInTaskBox, saveTaskPositions, toggleTagForTaskId } from "./helpers.js"
+import { focusTaskBelowFocusedTaskOrFirstTask, focusTaskAboveFocusedTaskOrLastTask, focusTaskByRef, focusTaskTitle, focusTaskTitleByRef, getFocusedTaskElement, getTaskElById, getTaskIdForTaskElement, getTaskRef, newTaskAfterTaskEl, newTaskInTaskBox, saveTaskPositions, toggleTagForTaskId, toggleTaskStatus } from "./helpers.js"
 
 let configObj: Config;
 
@@ -15,8 +15,8 @@ if (configFromLocalstorage) {
         numColumns: 3,
         showBoxTagsInTasks: true,
         tasks: [
-            { title: 'my prio high task', id: crypto.randomUUID(), tags: ['today', 'orga'] },
-            { title: 'my 2nd task', id: crypto.randomUUID(), tags: ['focus'] }
+            { title: 'my prio high task', id: crypto.randomUUID(), status: TaskStatus.New, tags: ['today', 'orga'] },
+            { title: 'my 2nd task', id: crypto.randomUUID(), status: TaskStatus.New, tags: ['focus'] }
         ],
         tags: [
             { name: "prio::high", color: 'crimson' },
@@ -124,11 +124,18 @@ window.addEventListener('keydown', (event: KeyboardEvent) => {
         }
     } else if (config.inputMode == 'v' && event.code == "Space") {
         // handle space key event
-        event.preventDefault(); // prevent scrolling down
-        const focusedTaskCheckbox = document.querySelector(`.task:focus input`);
-        if (focusedTaskCheckbox) {
-            focusedTaskCheckbox.toggleAttribute('checked');
+        const taskEl = getFocusedTaskElement();
+        if (taskEl.success) {
+            event.preventDefault(); // prevent scrolling down
+            const taskId = getTaskIdForTaskElement(taskEl.value);
+            toggleTaskStatus(taskId);
+
+            // re-render task to display status
+            const taskRef = getTaskRef(taskEl.value);
+            renderTasks();
+            focusTaskByRef(taskRef);
         }
+
     } else if (config.inputMode == 'v' && event.key == 'o') {
         // handle o key event
         if (event.target instanceof HTMLInputElement) {
