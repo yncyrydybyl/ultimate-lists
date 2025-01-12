@@ -220,6 +220,7 @@ export function renderTasks() {
     let tasks_in_boxes: Task[] = [];
 
     for (let box of config.boxes) {
+        // render tasks for each box
         if (box.id == 'default') continue;
         const boxTasks = getTasksForBox(box.id);
         const rendered = Mustache.render(task_template, {tasks: sortTasksByPosition(boxTasks, box.id), "tagsWithOrWithoutBoxTags": tagsWithOrWithoutBoxTags(box.tags), "tagColor": getTagBackgroundColor, "tagTextColor": getTagTextColor});
@@ -231,6 +232,7 @@ export function renderTasks() {
             if (!(taskEl instanceof HTMLElement)) {
                 throw new Error("taskEl unexpectedly no instance of HTMLElement");
             }
+
             const checkboxEl = taskEl.querySelector('input[type="checkbox"]');
             if (checkboxEl == null || !(checkboxEl instanceof HTMLInputElement)) {
                 throw new Error("checkoxEl unexpectedly null or no instance of HTMLInputElement");
@@ -288,6 +290,28 @@ export function renderTasks() {
                 // handle '#' key on .task-title: create new tag
                 event.preventDefault();
                 let newTagEl = newTagElement('#');
+
+                function insertNodeAtCursor(node: Node) {
+                    var range, html;
+                    if (window.getSelection && window.getSelection()?.getRangeAt) {
+                        range = window.getSelection()!.getRangeAt(0);
+                        range.insertNode(node);
+                    } else if ((document as any).selection && (document as any).selection.createRange) {
+                        range = (document as any).selection.createRange();
+                        html = (node.nodeType == 3) ? (node as any).data : (node as any).outerHTML;
+                        range.pasteHTML(html);
+                    }
+                }
+
+                function setCursorToEnd(ele: HTMLElement){
+                    var range = document.createRange();
+                    var sel = window.getSelection();
+                    range.setStart(ele, 1);
+                    range.collapse(true);
+                    sel?.removeAllRanges();
+                    sel?.addRange(range);
+                }
+
                 insertNodeAtCursor(newTagEl);
                 setCursorToEnd(newTagEl);
             } else if (event.key == "Tab" || event.key == " " || event.key == "Spacebar") {
@@ -314,27 +338,6 @@ export function renderTasks() {
             }
         });
 
-        function insertNodeAtCursor(node: Node) {
-            var range, html;
-            if (window.getSelection && window.getSelection()?.getRangeAt) {
-                range = window.getSelection()!.getRangeAt(0);
-                range.insertNode(node);
-            } else if ((document as any).selection && (document as any).selection.createRange) {
-                range = (document as any).selection.createRange();
-                html = (node.nodeType == 3) ? (node as any).data : (node as any).outerHTML;
-                range.pasteHTML(html);
-            }
-        }
-
-        function setCursorToEnd(ele: HTMLElement){
-            var range = document.createRange();
-            var sel = window.getSelection();
-            range.setStart(ele, 1);
-            range.collapse(true);
-            sel?.removeAllRanges();
-            sel?.addRange(range);
-        }
-
         // update task title on keyup
         (el as HTMLElement).addEventListener('keyup', (event: KeyboardEvent) => {
             if (event.key != "Enter") {
@@ -347,6 +350,17 @@ export function renderTasks() {
 
                 saveTaskTitle(taskEl);
             }
+        });
+
+        // edit task on mouse click
+        el.addEventListener('click', (event) => {
+            if (!(event.target instanceof HTMLElement)) return;
+            const taskEl: HTMLElement | null = event.target.closest('.task');
+            if (!taskEl) throw new Error("taskEl unexpectedly not found");
+
+            event.preventDefault();
+            focusTaskTitle(taskEl);
+            config.inputMode = 'i'; // switch to insert mode
         });
 
         // update task on focusout
