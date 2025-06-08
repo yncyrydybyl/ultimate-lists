@@ -1,70 +1,13 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>ultimate lists</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="bulma/css/bulma.min.css">
-    <link rel="stylesheet" href="css/app.css">
+    <title>Vite + Svelte + TS</title>
   </head>
   <body>
-  <section class="section">
-      <h1 class="title">
-        ultimate lists
-      </h1>
-      <p class="subtitle">
-        A keyboard-first, tag-based list and task management web app optimized for high-volume task management
-      </p>
-      <section class="tag-list-wrapper"><span id="tag-list"></span> <input type="text" id="new-tag-input" placeholder="create new tag"/></section>
-      <div id="tasks-wrapper" class="columns"></div>
-  </section>
-
-  <section class="footer">Thanks for using <em>ultimate lists</em>! This web application is Free Software (Open-Source-Software), licensed under the terms of the <a href="https://codeberg.org/codedust/ultimate-lists/src/branch/main/LICENSE.md">GNU Affero General Public License</a>.</section>
-
-  <script id="columns-template" type="x-tmpl-task">
-    {{#columns}}
-    <div class="column" data-column-index="{{.}}"></div>
-    {{/columns}}
-    <div class="column is-narrow">
-      <button class="button new-column-button is-small">+</button>
-    </div>
-  </script>
-
-  <script id="boxes-template" type="x-tmpl-task">
-    {{#boxes}}
-    <section class="task-box" data-task-box-id="{{id}}">
-      <h2 class="task-box-heading">
-        {{name}}
-        {{#tags}}<span class="tag" data-tag-name="{{.}}" style="background-color: {{tagColor}}; color: {{tagTextColor}}">{{.}} <button class="delete is-small"></button></span>{{/tags}}
-        <label for="new-tag-input-{{id}}" class="tag button">+</label><input type="text" id="new-tag-input-{{id}}" placeholder="add new tag filter"/>
-        <button class="button delete" style="float: right;">x</button>
-      </h2>
-      <section id="task-list-{{id}}" class="task-list"></section>
-      <span class="new-task-placeholder"><input type="checkbox" disabled><h3 class="task-title">create new task here</h3></span>
-    </section>
-    {{/boxes}}
-    <button class="button new-box-button is-small is-fullwidth">+</button>
-  </script>
-
-  <script id="tags-template" type="x-tmpl-task">
-    {{#tags}}
-      <label class="tag-label" for="color-{{name}}" draggable="true">
-        <span class="tag" data-tag-name="{{name}}" style="background-color: {{color}}; color: {{tagTextColor}}">{{shortcut}}: {{name}} <button class="delete is-small"></button></span>
-        <input class="color-input" id="color-{{name}}" type="color" value="">
-      </label>
-    {{/tags}}
-  </script>
-
-  <script id="tasks-template" type="x-tmpl-task">
-    {{#tasks}}
-    <article class="task" data-task-id="{{id}}" tabindex="0" draggable="true">
-      <input type="checkbox"><h3 class="task-title">{{ title }}</h3>
-      <div class="tags">{{#tagsWithOrWithoutBoxTags}}<span class="tag" style="background-color: {{tagColor}}; color: {{tagTextColor}}">{{.}}</span>{{/tagsWithOrWithoutBoxTags}}</div>
-    </article>
-    {{/tasks}}
-  </script>
-
-  <script src="src/mustache.js-4.2.0.js"></script>
-  <script type="module" src="src/app.js"></script>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

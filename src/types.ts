@@ -1,5 +1,4 @@
 export type Config = {
-    inputMode: string,
     numColumns: number,
     showBoxTagsInTasks: boolean,
     tasks: Task[],

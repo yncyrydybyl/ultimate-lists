@@ -1,2 +1,6 @@
+deploy.sh
+dist/
+node_modules/
 src/*.js
 src/*.map
+*.bak

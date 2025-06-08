@@ -27,6 +27,7 @@
 
 #tag-list {
     padding-bottom: 1em;
+    display: inline-block;
 }
 
 #tag-list .tag-label {
