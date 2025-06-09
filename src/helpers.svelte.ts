@@ -1,3 +1,4 @@
+import { SyncedText } from "@syncedstore/core";
 import type { Box, BoxPositions, Task, TaskRef } from "./types";
 import { TaskStatus } from "./types";
 
@@ -69,7 +70,7 @@ export function createTask(taskId: string, boxPositions: BoxPositions, tags: str
     if (boxPositions == null) boxPositions = {};
     if (tags == null) tags = [];
     return {
-        title: '',
+        title: new SyncedText(''),
         id: taskId,
         status: TaskStatus.New,
         tags: [...tags],

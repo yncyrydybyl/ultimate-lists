@@ -1,3 +1,5 @@
+import { Text as YText } from 'yjs';
+
 export const SyncedStoreShape = {
     config: {} as Config,
     tasks: [] as Task[],
@@ -24,7 +26,7 @@ export enum TaskStatus {
 }
 
 export type Task = {
-    title: string,
+    title: YText,
     id: string,
     status: TaskStatus,
     tags: string[],

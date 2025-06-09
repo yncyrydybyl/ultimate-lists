@@ -1,5 +1,5 @@
 import { SyncedStoreShape, TaskStatus, type Box, type Config, type Tag, type Task } from "./types";
-import { getYjsDoc, syncedStore } from "@syncedstore/core";
+import { getYjsDoc, syncedStore, SyncedText } from "@syncedstore/core";
 import { svelteSyncedStore } from "@syncedstore/svelte";
 import { WebrtcProvider } from "y-webrtc";
 import { IndexeddbPersistence } from "y-indexeddb";
@@ -22,8 +22,8 @@ indexeddbProvider.once('synced', () => {
     if (configSyncedStore.config.showBoxTagsInTasks === undefined) configSyncedStore.config.showBoxTagsInTasks = false;
     if (configSyncedStore.tasks.length == 0) {
         configSyncedStore.tasks.push(
-            { title: 'my prio high task', id: crypto.randomUUID(), status: TaskStatus.New, tags: ['today', 'orga'] },
-            { title: 'my 2nd task', id: crypto.randomUUID(), status: TaskStatus.New, tags: ['focus'] }
+            { title: new SyncedText('my prio high task'), id: crypto.randomUUID(), status: TaskStatus.New, tags: ['today', 'orga'] },
+            { title: new SyncedText('my 2nd task'), id: crypto.randomUUID(), status: TaskStatus.New, tags: ['focus'] }
         );
     }
     if (configSyncedStore.tags.length == 0) {

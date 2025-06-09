@@ -185,7 +185,7 @@
         let arr = Array.from((el.closest('.task-list')! as HTMLElement).children);
         if (!task.boxPositions) task.boxPositions = {};
         if (task.boxPositions[boxId] != arr.indexOf(el)) {
-            console.log("diff!", task.title, task.boxPositions[getBoxIdForTaskEl(el as HTMLElement)], arr.indexOf(el));
+            console.log("diff!", boxId, JSON.stringify(task.title), task.boxPositions[boxId], arr.indexOf(el));
             task.boxPositions[boxId] = arr.indexOf(el);
         }
     };
