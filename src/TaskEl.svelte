@@ -6,13 +6,13 @@
     import { focusTaskByRef, focusTaskTitle, getBoxIdForTaskEl, getFirstTaskEl, getFocusedTaskElement, getTaskElById, getTaskRef, getTaskTitleFromTaskElement, newTagElement, newTaskAfterTaskEl, saveNewTagsForTask } from "./helpers.svelte";
     import { tick } from "svelte";
     import { localState, svelteStore } from "./shared.svelte";
-    let { task, taskTitle = $bindable(), boxId, filteredTags, config } = $props();
+    let { task, taskTitle = $bindable(), boxId, filteredTagNames } = $props();
 
     let taskEl: HTMLElement | undefined = $state();
     let taskTitleEl: HTMLElement | undefined = $state();
 
     function getColorForTagWithName(tagName: string) {
-        const globalTagsWithGivenName = config.tags.filter((t: Tag) => t.name == tagName);
+        const globalTagsWithGivenName = $svelteStore.tags.filter((t: Tag) => t.name == tagName);
         if (globalTagsWithGivenName.length == 1) {
             return globalTagsWithGivenName[0].color;
         }
@@ -115,13 +115,11 @@
             const focusedTaskRef = getTaskRef(focusedTaskEl.value);
             if (focusedTaskEl.value.querySelector('.task-title .tag')) {
                 // when new tag is being created, save tag
-                console.log('c', config);
-
-                saveNewTagsForTask(focusedTaskEl.value, config);
+                saveNewTagsForTask(focusedTaskEl.value, $svelteStore.tasks);
             } else if (event.key == "Tab" && getTaskTitleFromTaskElement(focusedTaskEl.value) != '') {
                 // when tab key is pressed and task title is not empty, unfocus task title and focus task
                 focusTaskByRef(focusedTaskRef);
-                config.inputMode = 'v';
+                localState.mode = 'v';
             }
         } else if (event.key == 'Escape') {
             // handle escape key event
@@ -158,7 +156,7 @@
         localState.mode = 'v';
 
         // update data model of task that lost focus
-        saveNewTagsForTask(taskEl, config);
+        saveNewTagsForTask(taskEl, $svelteStore.tasks);
 
         if (getTaskTitleFromTaskElement(taskEl) == '') {
             // delete task if title is empty
@@ -168,8 +166,8 @@
                 nextFocusedTaskRef = getTaskRef(taskEl.nextElementSibling as HTMLElement);
             }
 
-            let index = config.tasks.indexOf(task);
-            config.tasks.splice(index, 1);
+            let index = $svelteStore.tasks.indexOf(task);
+            $svelteStore.tasks.splice(index, 1);
 
             // restore focus after next tick
             tick().then(() => {
@@ -197,5 +195,5 @@
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <article {@attach setTaskPostion} bind:this={taskEl} class="task" data-task-id="{task.id}" tabindex="0" draggable="true">
     <input type="checkbox" {@attach renderTaskStatus(task.status)}><h3 bind:this={taskTitleEl} class="task-title" bind:textContent={ taskTitle } contenteditable onclick={taskTitleClickListener} onkeydown={taskTitleKeyDownListener} onfocusout={taskTitleFocusOutListener}></h3>
-    <div class="tags">{#each filteredTags as tagName}<span class="tag" style="background-color: {getColorForTagWithName(tagName)}; color: {pickTextColorBasedOnBackgroundColor(getColorForTagWithName(tagName) || "white")}">{tagName}</span>{/each}</div>
+    <div class="tags">{#each filteredTagNames as tagName}<span class="tag" style="background-color: {getColorForTagWithName(tagName)}; color: {pickTextColorBasedOnBackgroundColor(getColorForTagWithName(tagName) || "white")}">{tagName}</span>{/each}</div>
 </article>
