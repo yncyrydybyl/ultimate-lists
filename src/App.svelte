@@ -294,11 +294,6 @@
         $svelteStore.config.numColumns++;
         createBoxInColumn($svelteStore.config.numColumns - 1);
     }
-
-    let defaultBoxTasks = $derived(sortTasksByPosition($svelteStore.tasks.filter(task =>
-                            task.tags.length == 0 || // task has no tags
-                            !$svelteStore.boxes.some(otherBox => 'default' != otherBox.id && otherBox.tags.length > 0 && otherBox.tags.every(boxTag => task.tags.includes(boxTag))) // no other box exists that contains the task's tags
-                        ), 'default'));
 </script>
 
 <section class="section">
@@ -328,7 +323,10 @@
                 </h2>
                 <section id="task-list-{box.id}" class="task-list">
                     {#if box.id == "default"}
-                    {#each defaultBoxTasks as task}
+                    {#each sortTasksByPosition($svelteStore.tasks.filter(task =>
+                            task.tags.length == 0 || // task has no tags
+                            !$svelteStore.boxes.some(otherBox => 'default' != otherBox.id && otherBox.tags.length > 0 && otherBox.tags.every(boxTag => task.tags.includes(boxTag))) // no other box exists that contains the task's tags
+                        ), 'default') as task}
                         <TaskEl {task} bind:taskTitle={task.title} boxId={box.id} filteredTags={task.tags} config={$svelteStore} />
                     {/each}
                     {:else}
