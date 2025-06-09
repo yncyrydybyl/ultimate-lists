@@ -1,15 +1,15 @@
-import type { Box, BoxPositions, Config, Tag, Task, TaskRef } from "./types";
+import type { Box, BoxPositions, Task, TaskRef } from "./types";
 import { TaskStatus } from "./types";
 
 // ----- Result helper functions -----
 
-type Result<T> = { success: true, value: T } | { success: false, error: Error };
+export type Result<T> = { success: true, value: T } | { success: false, error: Error };
 
-function Ok<T>(value: T): { success: true, value: T} {
+export function Ok<T>(value: T): { success: true, value: T} {
     return { success: true, value: value };
 }
 
-function Err(error: Error): { success: false, error: Error} {
+export function Err(error: Error): { success: false, error: Error} {
     return { success: false, error: error };
 }
 
@@ -22,9 +22,16 @@ export function newTagElement(tagText: string) {
     return el;
 }
 
-export function toggleTagForTaskId(taskId: string, tagName: string, config: Config) {
+export function saveNewTagsForTask(taskEl: HTMLElement, tasks: Array<Task>) {
+    taskEl.querySelectorAll('.task-title .tag').forEach((tagEl) => {
+        toggleTagForTaskId(getTaskIdForTaskElement(taskEl), (tagEl as HTMLElement).innerText, tasks);
+        tagEl.remove();
+    });
+}
+
+export function toggleTagForTaskId(taskId: string, tagName: string, tasks: Array<Task>) {
     tagName = tagName.replace('#', '').trim();
-    for (let task of config.tasks) {
+    for (let task of tasks) {
         if (task.id == taskId) {
             if (!task.tags) {
                 task['tags'] = [];
@@ -45,12 +52,6 @@ export function toggleTagForTaskId(taskId: string, tagName: string, config: Conf
     }
 }
 
-export function saveNewTagsForTask(taskEl: HTMLElement, config: Config) {
-    taskEl.querySelectorAll('.task-title .tag').forEach((tagEl) => {
-        toggleTagForTaskId(getTaskIdForTaskElement(taskEl), (tagEl as HTMLElement).innerText, config);
-        tagEl.remove();
-    });
-}
 
 // ----- box helper functions -----
 
@@ -60,43 +61,6 @@ export function getBoxIdForTaskEl(taskEl: HTMLElement): string {
 
 export function getBoxPositionForTaskEl(taskEl: HTMLElement) {
     return Array.from((taskEl.closest('.task-list')! as HTMLElement).children).indexOf(taskEl);
-}
-
-function getBoxWithId(boxId: string, config: Config): Result<Box> {
-    for (let box of config.boxes) {
-        if (box.id == boxId) {
-            return Ok(box);
-        }
-    }
-    return Err(new Error(`box with id ${boxId} not found.`));
-}
-
-function getBoxesInColumn(columnIndex: number, boxes: Box[], numColumns: number) {
-    // put all boxes with undefined columnIndex or columnIndex >= config.numColumns in column 0
-    return boxes.filter(box =>
-        columnIndex == 0 && !(box.columnIndex && box.columnIndex > 0 && box.columnIndex < numColumns) || box.columnIndex == columnIndex);
-}
-
-export function deleteBoxWithId(boxId: string, config: Config) {
-    let columnIndex;
-
-    // find and delete box with given boxId
-    for (let [index, box] of config.boxes.entries()) {
-        if (box.id == boxId) {
-            columnIndex = box.columnIndex;
-            config.boxes.splice(index, 1);
-        }
-    }
-
-    // delete column if deleted box was the last box of this column
-    if (columnIndex !== undefined && getBoxesInColumn(columnIndex, config.boxes, config.numColumns).length == 0) {
-        // move all boxes right to the deleted column one column to the left
-        for (let box of config.boxes) {
-            if (box.columnIndex != undefined && box.columnIndex > columnIndex) box.columnIndex--;
-        }
-
-        config.numColumns--;
-    }
 }
 
 // ----- task helper functions -----
@@ -112,6 +76,50 @@ export function createTask(taskId: string, boxPositions: BoxPositions, tags: str
         boxPositions: boxPositions,
     }
 }
+
+export function getBoxWithId(boxId: string, boxes: Array<Box>): Result<Box> {
+    for (let box of boxes) {
+        if (box.id == boxId) {
+            return Ok(box);
+        }
+    }
+    return Err(new Error(`box with id ${boxId} not found.`));
+}
+
+export function getTaskByTaskId(taskId: string, tasks: Array<Task>): Result<Task> {
+    for (let task of tasks) {
+        if (task.id == taskId) {
+            return Ok(task);
+        }
+    }
+    return Err(new Error(`task with taskId ${taskId} not found.`));
+}
+
+export function newTaskAfterTaskEl(taskEl: HTMLElement, boxes: Array<Box>, tasks: Array<Task>) {
+    const boxId = getBoxIdForTaskEl(taskEl);
+    const taskBox = getBoxWithId(boxId, boxes);
+    if (!taskBox.success) throw taskBox.error;
+    let position = getBoxPositionForTaskEl(taskEl) + 1;
+
+    // create task
+    const newTask = createTaskInTaskBox(taskBox.value, position);
+
+    // update box position of tasks below
+    let taskBelow = taskEl;
+    while (taskBelow.nextElementSibling && taskBelow.nextElementSibling instanceof HTMLElement) {
+        taskBelow = taskBelow.nextElementSibling;
+        let task = getTaskByTaskId(getTaskIdForTaskElement(taskBelow), tasks);
+        if (task.success) {
+            if (!task.value.boxPositions) task.value.boxPositions = {};
+            task.value.boxPositions[boxId] = ++position;
+        }
+    }
+
+    // add new task
+    tasks.push(newTask);
+    return newTask;
+}
+
 
 // focus task by given task reference
 export function focusTaskByRef(taskRef: TaskRef) {
@@ -301,15 +309,6 @@ export function getFirstTaskEl(): HTMLElement | null {
     return document.querySelector('.task');
 }
 
-export function getTaskByTaskId(taskId: string, config: Config): Result<Task> {
-    for (let task of config.tasks) {
-        if (task.id == taskId) {
-            return Ok(task);
-        }
-    }
-    return Err(new Error(`task with taskId ${taskId} not found.`));
-}
-
 export function getTaskTitleFromTaskElement(taskEl: HTMLElement) {
     let title = '';
     for (var i = 0; i < taskEl.querySelector('.task-title')!.childNodes.length; ++i) {
@@ -335,46 +334,9 @@ export function toggleTaskStatus(task: Task) {
 }
 
 // add new task after task with given id
-function createTaskInTaskBox(taskBox: Box, position?: number) {
+export function createTaskInTaskBox(taskBox: Box, position?: number) {
     const newTaskId = crypto.randomUUID();
     const boxPositions: BoxPositions = {};
     boxPositions[taskBox.id] = position;
     return createTask(newTaskId, boxPositions, taskBox.tags);
-}
-
-export function newTaskInTaskBox(boxId: string, config: Config) {
-    const taskBox = getBoxWithId(boxId, config);
-    if (!taskBox.success) throw taskBox.error;
-
-    // create task
-    const newTask = createTaskInTaskBox(taskBox.value);
-
-    // add task
-    config.tasks.push(newTask);
-    return newTask;
-}
-
-export function newTaskAfterTaskEl(taskEl: HTMLElement, config: Config) {
-    const boxId = getBoxIdForTaskEl(taskEl);
-    const taskBox = getBoxWithId(boxId, config);
-    if (!taskBox.success) throw taskBox.error;
-    let position = getBoxPositionForTaskEl(taskEl) + 1;
-
-    // create task
-    const newTask = createTaskInTaskBox(taskBox.value, position);
-
-    // update box position of tasks below
-    let taskBelow = taskEl;
-    while (taskBelow.nextElementSibling && taskBelow.nextElementSibling instanceof HTMLElement) {
-        taskBelow = taskBelow.nextElementSibling;
-        let task = getTaskByTaskId(getTaskIdForTaskElement(taskBelow), config);
-        if (task.success) {
-            if (!task.value.boxPositions) task.value.boxPositions = {};
-            task.value.boxPositions[boxId] = ++position;
-        }
-    }
-
-    // add task
-    config.tasks.push(newTask);
-    return newTask;
 }

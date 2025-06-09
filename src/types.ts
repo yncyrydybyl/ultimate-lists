@@ -1,10 +1,21 @@
+export const SyncedStoreShape = {
+    config: {} as Config,
+    tasks: [] as Task[],
+    tags: [] as Tag[],
+    boxes: [] as Box[]
+};
+
+export type SyncedStoreType = {
+    config: Config,
+    tasks: Array<Task>,
+    tags: Array<Tag>,
+    boxes: Array<Box>
+}
+
 export type Config = {
     numColumns: number,
-    showBoxTagsInTasks: boolean,
-    tasks: Task[],
-    tags: Tag[],
-    boxes: Box[],
-};
+    showBoxTagsInTasks: boolean
+}
 
 export enum TaskStatus {
     New = "new",

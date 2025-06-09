@@ -3,9 +3,9 @@
     import type { Tag, TaskRef } from "./types";
     import { TaskStatus } from "./types";
     import { pickTextColorBasedOnBackgroundColor } from "./utils";
-    import { focusTaskByRef, focusTaskTitle, getBoxIdForTaskEl, getFirstTaskEl, getFocusedTaskElement, getTaskElById, getTaskRef, getTaskTitleFromTaskElement, newTagElement, newTaskAfterTaskEl, saveNewTagsForTask } from "./helpers";
+    import { focusTaskByRef, focusTaskTitle, getBoxIdForTaskEl, getFirstTaskEl, getFocusedTaskElement, getTaskElById, getTaskRef, getTaskTitleFromTaskElement, newTagElement, newTaskAfterTaskEl, saveNewTagsForTask } from "./helpers.svelte";
     import { tick } from "svelte";
-    import { localState } from "./shared.svelte";
+    import { localState, svelteStore } from "./shared.svelte";
     let { task, taskTitle = $bindable(), boxId, filteredTags, config } = $props();
 
     let taskEl: HTMLElement | undefined = $state();
@@ -67,7 +67,7 @@
                     throw new Error("taskEl unexpectedly undefined");
                 }
 
-                let newTask = newTaskAfterTaskEl(taskEl, config);
+                let newTask = newTaskAfterTaskEl(taskEl, $svelteStore.boxes, $svelteStore.tasks);
 
                 // focus task title after it has been rendered
                 tick().then(() => {

@@ -1,55 +1,23 @@
 <script lang="ts">
-    import type { BoxPositions, Config, Task } from "./types";
-    import { TaskStatus } from "./types";
-    import { focusTaskBelowFocusedTaskOrFirstTask, focusTaskAboveFocusedTaskOrLastTask, focusTaskByRef, focusTaskTitle, focusTaskTitleByRef, getFocusedTaskElement, getTaskElById, getTaskIdForTaskElement, getTaskRef, newTaskAfterTaskEl, newTaskInTaskBox, toggleTagForTaskId, toggleTaskStatus, deleteBoxWithId, createTask, getBoxIdForTaskEl, getBoxPositionForTaskEl, getTaskElAboveFocusedTask, getTaskElBelowFocusedTask, getTaskByTaskId } from "./helpers"
-    import TagList from "./TagList.svelte";
+    import type { BoxPositions, Task, Box } from "./types";
+    import { createTaskInTaskBox, getBoxWithId, getTaskByTaskId, newTaskAfterTaskEl, focusTaskBelowFocusedTaskOrFirstTask, focusTaskAboveFocusedTaskOrLastTask, focusTaskByRef, focusTaskTitle, focusTaskTitleByRef, getFocusedTaskElement, getTaskElById, getTaskIdForTaskElement, getTaskRef, toggleTaskStatus, createTask, getBoxIdForTaskEl, getBoxPositionForTaskEl, getTaskElAboveFocusedTask, getTaskElBelowFocusedTask, toggleTagForTaskId } from "./helpers.svelte"
     import { pickTextColorBasedOnBackgroundColor } from "./utils";
+    import TagList from "./TagList.svelte";
     import TaskEl from "./TaskEl.svelte";
     import { tick } from "svelte";
-    import { localState } from "./shared.svelte";
+    import { localState, svelteStore } from "./shared.svelte";
 
-    let configObj: Config;
+    $inspect($svelteStore);
 
-    // read config from localStorage
-    let configFromLocalstorage = localStorage.getItem('ultimateLists.config');
-    if (configFromLocalstorage) {
-        console.log("loading config from localStorage...");
-        configObj = JSON.parse(configFromLocalstorage);
-    } else {
-        // populate default config
-        configObj = {
-            numColumns: 3,
-            showBoxTagsInTasks: true,
-            tasks: [
-                { title: 'my prio high task', id: crypto.randomUUID(), status: TaskStatus.New, tags: ['today', 'orga'] },
-                { title: 'my 2nd task', id: crypto.randomUUID(), status: TaskStatus.New, tags: ['focus'] }
-            ],
-            tags: [
-                { name: "prio::high", color: 'crimson' },
-                { name: "today", color: 'green' },
-                { name: "focus", color: 'gold' },
-                { name: "orga", color: 'darkcyan' },
-            ],
-            boxes: [
-                { name: "Inbox", tags: [], id: 'default'},
-                { tags: ['orga', 'today'], id: crypto.randomUUID(), columnIndex: 1 },
-                { tags: ['orga'], id: crypto.randomUUID(), columnIndex: 1 },
-                { tags: ['focus', 'today'], id: crypto.randomUUID(), columnIndex: 2 },
-                { tags: ['focus'], id: crypto.randomUUID(), columnIndex: 2 },
-            ],
-        };
-    }
-
-    export const config = $state(configObj);
-    $inspect(config);
-
-    let stringifiedConfig = $derived(JSON.stringify(config));
+    // write svelteStore to localStorage
+    let stringifiedConfig = $derived(JSON.stringify($svelteStore));
     $effect(() => {
-        console.log("writing to localStorage...");
+        console.log("writing to localStorage (for backup reasons only)...");
         localStorage.setItem('ultimateLists.config', stringifiedConfig);
     });
 
     let boxIdOfFocusedNewTagInput = $state("");
+    let numColumns = $derived($svelteStore.boxes.reduce((max, box) => Math.max(max, box.columnIndex || 0), 0) + 1);
 
     // handle global key events
     window.addEventListener('keydown', (event: KeyboardEvent) => {
@@ -98,7 +66,7 @@
             if (taskEl.success) {
                 event.preventDefault(); // prevent scrolling down
                 const taskId = getTaskIdForTaskElement(taskEl.value);
-                const task = getTaskByTaskId(taskId, config);
+                const task = getTaskByTaskId(taskId, $svelteStore.tasks);
                 if (task.success) {
                     toggleTaskStatus(task.value);
                 }
@@ -115,9 +83,9 @@
             let newTask: Task;
             const focusedTask = document.querySelector(`.task:focus`);
             if (focusedTask instanceof HTMLElement) {
-                newTask = newTaskAfterTaskEl(focusedTask, config);
+                newTask = newTaskAfterTaskEl(focusedTask, $svelteStore.boxes, $svelteStore.tasks);
             } else {
-                newTask = newTaskInTaskBox("default", config);
+                newTask = newTaskInTaskBox("default", $svelteStore.boxes);
             }
 
             // focus title of new task
@@ -139,13 +107,13 @@
 
             const tagIndex = parseInt(event.key) == 0 ? 9 : parseInt(event.key) - 1;
 
-            if (tagIndex >= config.tags.length) {
+            if (tagIndex >= $svelteStore.tags.length) {
                 console.log(`no shortcut defined for ctrl+${event.key}`);
                 return;
             }
 
             // toggle predefined tag for shortcut event
-            toggleTagForTaskId(taskId, config.tags[tagIndex].name, config);
+            toggleTagForTaskId(taskId, $svelteStore.tags[tagIndex].name, $svelteStore.tasks);
 
             tick().then(() => {
                 if (localState.mode == 'v') {
@@ -168,22 +136,63 @@
         });
     }
 
+    // ----- task helper functions -----
+    export function newTaskInTaskBox(boxId: string, boxes: Array<Box>) {
+        const taskBox = getBoxWithId(boxId, boxes);
+        if (!taskBox.success) throw taskBox.error;
+
+        // create task
+        const newTask = createTaskInTaskBox(taskBox.value);
+
+        // add task
+        $svelteStore.tasks.push(newTask);
+        return newTask;
+    }
+
     function getTagColor(tagName: string) {
-        for (let tag of config.tags) {
+        for (let tag of $svelteStore.tags) {
             if (tag.name == tagName && tag.color) {
                 return tag.color;
             }
         }
     }
 
+    function getBoxesInColumn(columnIndex: number) {
+        // put all boxes with undefined columnIndex or columnIndex >= config.numColumns in column 0
+        return $svelteStore.boxes.filter(box =>
+            columnIndex == 0 && !(box.columnIndex && box.columnIndex > 0 && box.columnIndex < numColumns) || box.columnIndex == columnIndex);
+    }
+
     function createBoxInColumn(columnIndex: number) {
         const newBoxId = crypto.randomUUID();
-        config.boxes.push({ tags: [], id: newBoxId, columnIndex: columnIndex });
+        $svelteStore.boxes.push({ tags: [], id: newBoxId, columnIndex: columnIndex });
 
         // focus tag input field after new box has been rendered
         tick().then(() => {
             focusNewTagInput(newBoxId);
         })
+    }
+
+    function deleteBoxWithId(boxId: string) {
+        let columnIndex;
+
+        // find and delete box with given boxId
+        for (let [index, box] of $svelteStore.boxes.entries()) {
+            if (box.id == boxId) {
+                columnIndex = box.columnIndex;
+                $svelteStore.boxes.splice(index, 1);
+            }
+        }
+
+        // delete column if deleted box was the last box of this column
+        if (columnIndex !== undefined && getBoxesInColumn(columnIndex).length == 0) {
+            // move all boxes right to the deleted column one column to the left
+            for (let box of $svelteStore.boxes) {
+                if (box.columnIndex != undefined && box.columnIndex > columnIndex) box.columnIndex--;
+            }
+
+            // FIXME: remove: $svelteStore.config.numColumns--;
+        }
     }
 
     function focusNewTagInput(boxId: string) {
@@ -209,7 +218,7 @@
     }
 
     function removeTagFromBox(tagName: string, boxId: string) {
-        for (let box of config.boxes) {
+        for (let box of $svelteStore.boxes) {
             if (box.id == boxId) {
                 const index = box.tags.indexOf(tagName);
                 if (index == -1) {
@@ -217,20 +226,20 @@
                 }
                 box.tags.splice(index, 1);
                 if (box.tags.length == 0) {
-                    deleteBoxWithId(box.id, config);
+                    deleteBoxWithId(box.id);
                 }
             }
         }
         throw "box not found"
     }
 
-    function onClickNewTaskPlaceholder(config: Config, tags: string[]) {
+    function onClickNewTaskPlaceholder(tags: string[]) {
         return (event: MouseEvent) => {
             event.preventDefault();
             const newTaskId = crypto.randomUUID();
             const boxPositions: BoxPositions = {};
             const newTask = createTask(newTaskId, boxPositions, tags);
-            config.tasks.push(newTask);
+            $svelteStore.tasks.push(newTask);
 
             // render task title after it has been rendered
             tick().then(() => {
@@ -264,7 +273,7 @@
         if (focusedTask != null && taskEl && getBoxIdForTaskEl(focusedTask) == getBoxIdForTaskEl(taskEl)) {
             const taskRef = getTaskRef(focusedTask);
 
-            for (let task of config.tasks) {
+            for (let task of $svelteStore.tasks) {
                 if (task.id == getTaskIdForTaskElement(focusedTask)) {
                     if (!task.boxPositions) task["boxPositions"] = {};
                     task.boxPositions[getBoxIdForTaskEl(focusedTask)] = getBoxPositionForTaskEl(taskEl);
@@ -281,29 +290,29 @@
     }
 
     function addNewColumn() {
-        config.numColumns++;
-        createBoxInColumn(config.numColumns - 1);
+        if($svelteStore.config.numColumns === undefined) $svelteStore.config.numColumns = 0;
+        $svelteStore.config.numColumns++;
+        createBoxInColumn($svelteStore.config.numColumns - 1);
     }
 
-    let defaultBoxTasks = $derived(sortTasksByPosition(config.tasks.filter(task =>
+    let defaultBoxTasks = $derived(sortTasksByPosition($svelteStore.tasks.filter(task =>
                             task.tags.length == 0 || // task has no tags
-                            !config.boxes.some(otherBox => 'default' != otherBox.id && otherBox.tags.length > 0 && otherBox.tags.every(boxTag => task.tags.includes(boxTag))) // no other box exists that contains the task's tags
+                            !$svelteStore.boxes.some(otherBox => 'default' != otherBox.id && otherBox.tags.length > 0 && otherBox.tags.every(boxTag => task.tags.includes(boxTag))) // no other box exists that contains the task's tags
                         ), 'default'));
-
 </script>
 
 <section class="section">
     <h1 class="title">
-    ultimate lists [{localState.mode}]
+    ultimate lists [{localState.mode}] {$svelteStore.config.numColumns}
     </h1>
     <p class="subtitle">
     A keyboard-first, tag-based list and task management web app optimized for high-volume task management
     </p>
-    <TagList tags={config.tags}/>
+    <TagList tags={$svelteStore.tags}/>
     <div id="tasks-wrapper" class="columns">
-        {#each Array(config.numColumns), index}
+        {#each Array(numColumns), index}
         <div class="column" data-column-index="{index}">
-            {#each config.boxes.filter(box => (!("columnIndex" in box) && index == 0) || box.columnIndex == index) as box}
+            {#each $svelteStore.boxes.filter(box => (!("columnIndex" in box) && index == 0) || box.columnIndex == index) as box}
             <section class="task-box" data-task-box-id="{box.id}">
                 <h2 class="task-box-heading">
                     {box.name}
@@ -315,26 +324,26 @@
                     {/each}
                     <button class="tag button {boxIdOfFocusedNewTagInput==box.id?'is-hidden':''}" onclick={() => focusNewTagInput(box.id)}>+</button>
                     <input onblur={() => boxIdOfFocusedNewTagInput=""} onkeydown={onKeyDownNewTagInput(box.tags)} type="text" id="new-tag-input-{box.id}" placeholder="add new tag filter" style:display={boxIdOfFocusedNewTagInput==box.id?'inline-flex':'none'}/>
-                    <button class="button delete" style="float: right;" onclick={() => deleteBoxWithId(box.id, config)}>x</button>
+                    <button class="button delete" style="float: right;" onclick={() => deleteBoxWithId(box.id)}>x</button>
                 </h2>
                 <section id="task-list-{box.id}" class="task-list">
                     {#if box.id == "default"}
                     {#each defaultBoxTasks as task}
-                        <TaskEl {task} bind:taskTitle={task.title} boxId={box.id} filteredTags={task.tags} {config} />
+                        <TaskEl {task} bind:taskTitle={task.title} boxId={box.id} filteredTags={task.tags} config={$svelteStore} />
                     {/each}
                     {:else}
-                    {#each sortTasksByPosition(config.tasks.filter(task =>
+                    {#each sortTasksByPosition($svelteStore.tasks.filter(task =>
                             task.tags.length > 0 && // make sure that task has tags
                             box.tags.length > 0 &&
                             box.tags.every(boxTag => task.tags.includes(boxTag)) && // the task's tags must include every tag of the box
-                            !config.boxes.some(otherBox => box.id != otherBox.id && otherBox.tags.every(boxTag => task.tags.includes(boxTag)) && box.tags.every(boxTag => otherBox.tags.includes(boxTag)) && !otherBox.tags.every(otherBoxTag => box.tags.includes(otherBoxTag))) // no other box exists that contains the task's tags AND contains the same but strictly more tags than the box in question
+                            !$svelteStore.boxes.some(otherBox => box.id != otherBox.id && otherBox.tags.every(boxTag => task.tags.includes(boxTag)) && box.tags.every(boxTag => otherBox.tags.includes(boxTag)) && !otherBox.tags.every(otherBoxTag => box.tags.includes(otherBoxTag))) // no other box exists that contains the task's tags AND contains the same but strictly more tags than the box in question
                         ), box.id) as task}
-                        <TaskEl {task} bind:taskTitle={task.title} boxId={box.id} filteredTags={task.tags.filter(t => box.tags.indexOf(t) == -1 )} {config} />
+                        <TaskEl {task} bind:taskTitle={task.title} boxId={box.id} filteredTags={task.tags.filter(t => box.tags.indexOf(t) == -1 )} config={$svelteStore} />
                     {/each}
                     {/if}
                 </section>
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <span class="new-task-placeholder" onclick={onClickNewTaskPlaceholder(config, box.tags)} onkeydown={() => {}}>
+                <span class="new-task-placeholder" onclick={onClickNewTaskPlaceholder(box.tags)} onkeydown={() => {}}>
                     <input type="checkbox" disabled><h3 class="task-title">create new task here</h3>
                 </span>
             </section>
