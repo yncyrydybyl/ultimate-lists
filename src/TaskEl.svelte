@@ -3,8 +3,8 @@
     import type { Tag, TaskRef } from "./types";
     import { TaskStatus } from "./types";
     import { pickTextColorBasedOnBackgroundColor } from "./utils";
-    import { focusTaskByRef, focusTaskTitle, getBoxIdForTaskEl, getFirstTaskEl, getFocusedTaskElement, getTaskElById, getTaskRef, getTaskTitleFromTaskElement, newTagElement, newTaskAfterTaskEl, saveNewTagsForTask } from "./helpers.svelte";
-    import { tick } from "svelte";
+    import { focusTaskByRef, focusTaskTitle, getBoxIdForTaskEl, getFirstTaskEl, getFocusedTaskElement, getTaskElById, getTaskRef, getTaskTitleFromTaskElement, newTagElement, appendTaskAfterTaskEl, saveNewTagsForTask } from "./helpers.svelte";
+    import { onMount, tick } from "svelte";
     import { localState, svelteStore } from "./shared.svelte";
     let { task, taskTitle = $bindable(), boxId, filteredTagNames } = $props();
 
@@ -67,7 +67,7 @@
                     throw new Error("taskEl unexpectedly undefined");
                 }
 
-                let newTask = newTaskAfterTaskEl(taskEl, $svelteStore.boxes, $svelteStore.tasks);
+                let newTask = appendTaskAfterTaskEl(taskEl, $svelteStore.boxes, $svelteStore.tasks);
 
                 // focus task title after it has been rendered
                 tick().then(() => {
@@ -181,19 +181,24 @@
         }
     }
 
-    const setTaskPostion: Attachment = (el) => {
-        let arr = Array.from((el.closest('.task-list')! as HTMLElement).children);
-        if (!task.boxPositions) task.boxPositions = {};
-        if (task.boxPositions[boxId] != arr.indexOf(el)) {
-            console.log("diff!", boxId, JSON.stringify(task.title), task.boxPositions[boxId], arr.indexOf(el));
-            task.boxPositions[boxId] = arr.indexOf(el);
+    onMount(() => {
+        // update task element positions (self-healing)
+        console.log("mount");
+
+        if (taskEl instanceof HTMLElement) {
+            let arr = Array.from((taskEl.closest('.task-list')! as HTMLElement).children);
+            if (!task.boxPositions) task.boxPositions = {};
+            if (task.boxPositions[boxId] != arr.indexOf(taskEl)) {
+                console.log("diff!", boxId, JSON.stringify(task.title), task.boxPositions[boxId], arr.indexOf(taskEl));
+                task.boxPositions[boxId] = arr.indexOf(taskEl);
+            }
         }
-    };
+    });
 
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-<article {@attach setTaskPostion} bind:this={taskEl} class="task" data-task-id="{task.id}" tabindex="0" draggable="true">
+<article bind:this={taskEl} class="task" data-task-id="{task.id}" tabindex="0" draggable="true">
     <input type="checkbox" {@attach renderTaskStatus(task.status)}><h3 bind:this={taskTitleEl} class="task-title" bind:textContent={ taskTitle } contenteditable onclick={taskTitleClickListener} onkeydown={taskTitleKeyDownListener} onfocusout={taskTitleFocusOutListener}></h3>
     <div class="tags">{#each filteredTagNames as tagName}<span class="tag" style="background-color: {getColorForTagWithName(tagName)}; color: {pickTextColorBasedOnBackgroundColor(getColorForTagWithName(tagName) || "white")}">{tagName}</span>{/each}</div>
 </article>

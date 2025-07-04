@@ -60,6 +60,10 @@ export function getBoxIdForTaskEl(taskEl: HTMLElement): string {
     return (taskEl.closest('.task-box')! as HTMLElement).dataset.taskBoxId!;
 }
 
+export function getTaskListElById(boxId: string): HTMLElement {
+    return document.querySelector(`#task-list-${boxId}`)!;
+}
+
 export function getBoxPositionForTaskEl(taskEl: HTMLElement) {
     return Array.from((taskEl.closest('.task-list')! as HTMLElement).children).indexOf(taskEl);
 }
@@ -96,7 +100,7 @@ export function getTaskByTaskId(taskId: string, tasks: Array<Task>): Result<Task
     return Err(new Error(`task with taskId ${taskId} not found.`));
 }
 
-export function newTaskAfterTaskEl(taskEl: HTMLElement, boxes: Array<Box>, tasks: Array<Task>) {
+export function appendTaskAfterTaskEl(taskEl: HTMLElement, boxes: Array<Box>, tasks: Array<Task>) {
     const boxId = getBoxIdForTaskEl(taskEl);
     const taskBox = getBoxWithId(boxId, boxes);
     if (!taskBox.success) throw taskBox.error;

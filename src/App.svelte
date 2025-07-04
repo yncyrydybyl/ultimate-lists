@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { BoxPositions, Task, Box } from "./types";
-    import { createTaskInTaskBox, getBoxWithId, getTaskByTaskId, newTaskAfterTaskEl, focusTaskBelowFocusedTaskOrFirstTask, focusTaskAboveFocusedTaskOrLastTask, focusTaskByRef, focusTaskTitle, focusTaskTitleByRef, getFocusedTaskElement, getTaskElById, getTaskIdForTaskElement, getTaskRef, toggleTaskStatus, createTask, getBoxIdForTaskEl, getBoxPositionForTaskEl, getTaskElAboveFocusedTask, getTaskElBelowFocusedTask, toggleTagForTaskId } from "./helpers.svelte"
+    import { createTaskInTaskBox, getBoxWithId, getTaskByTaskId, appendTaskAfterTaskEl, focusTaskBelowFocusedTaskOrFirstTask, focusTaskAboveFocusedTaskOrLastTask, focusTaskByRef, focusTaskTitle, focusTaskTitleByRef, getFocusedTaskElement, getTaskElById, getTaskIdForTaskElement, getTaskRef, toggleTaskStatus, createTask, getBoxIdForTaskEl, getBoxPositionForTaskEl, getTaskElAboveFocusedTask, getTaskElBelowFocusedTask, toggleTagForTaskId, getTaskListElById } from "./helpers.svelte"
     import { pickTextColorBasedOnBackgroundColor } from "./utils";
     import TagList from "./TagList.svelte";
     import TaskEl from "./TaskEl.svelte";
@@ -83,9 +83,9 @@
             let newTask: Task;
             const focusedTask = document.querySelector(`.task:focus`);
             if (focusedTask instanceof HTMLElement) {
-                newTask = newTaskAfterTaskEl(focusedTask, $svelteStore.boxes, $svelteStore.tasks);
+                newTask = appendTaskAfterTaskEl(focusedTask, $svelteStore.boxes, $svelteStore.tasks);
             } else {
-                newTask = newTaskInTaskBox("default", $svelteStore.boxes);
+                newTask = appendTaskInTaskBox("default", $svelteStore.boxes);
             }
 
             // focus title of new task
@@ -137,12 +137,14 @@
     }
 
     // ----- task helper functions -----
-    export function newTaskInTaskBox(boxId: string, boxes: Array<Box>) {
+    export function appendTaskInTaskBox(boxId: string, boxes: Array<Box>) {
         const taskBox = getBoxWithId(boxId, boxes);
         if (!taskBox.success) throw taskBox.error;
 
+        let taskBoxLength = getTaskListElById(boxId).querySelectorAll('.task').length;
+
         // create task
-        const newTask = createTaskInTaskBox(taskBox.value);
+        const newTask = createTaskInTaskBox(taskBox.value, taskBoxLength);
 
         // add task
         $svelteStore.tasks.push(newTask);
@@ -233,13 +235,10 @@
         throw "box not found"
     }
 
-    function onClickNewTaskPlaceholder(tags: string[]) {
+    function onClickNewTaskPlaceholder(boxId: string) {
         return (event: MouseEvent) => {
             event.preventDefault();
-            const newTaskId = crypto.randomUUID();
-            const boxPositions: BoxPositions = {};
-            const newTask = createTask(newTaskId, boxPositions, tags);
-            $svelteStore.tasks.push(newTask);
+            let newTask = appendTaskInTaskBox(boxId, $svelteStore.boxes);
 
             // render task title after it has been rendered
             tick().then(() => {
@@ -341,7 +340,7 @@
                     {/if}
                 </section>
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <span class="new-task-placeholder" onclick={onClickNewTaskPlaceholder(box.tags)} onkeydown={() => {}}>
+                <span class="new-task-placeholder" onclick={onClickNewTaskPlaceholder(box.id)} onkeydown={() => {}}>
                     <input type="checkbox" disabled><h3 class="task-title">create new task here</h3>
                 </span>
             </section>
