@@ -7,8 +7,6 @@
     import { tick } from "svelte";
     import { localState, svelteStore } from "./shared.svelte";
 
-    $inspect($svelteStore);
-
     // write svelteStore to localStorage
     let stringifiedConfig = $derived(JSON.stringify($svelteStore));
     $effect(() => {
