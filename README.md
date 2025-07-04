@@ -7,18 +7,21 @@ A keyboard-first, tag-based list and task management web app optimized for high-
 - this tool tries to be as lightweight as a text file, but adds some semantics to the tasks
 - text files have no tagging/grouping/deadline features, but this tool has :)
 
-## How to build
-
-```sh
-yarn
-yarn build
-```
-
 ## How to run
+This project uses Yarn, Vite and TypeScript.
 
-```sh
+In order to start a dev server for local development, please run:
+
+```shell
 yarn
 yarn dev
+```
+
+## How to build
+
+```shell
+yarn
+yarn build
 ```
 
 ## License
