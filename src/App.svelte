@@ -295,7 +295,7 @@
 
 <section class="section">
     <h1 class="title">
-    ultimate lists [{localState.mode}] {$svelteStore.config.numColumns}
+    ultimate lists [{localState.mode}]
     </h1>
     <p class="subtitle">
     A keyboard-first, tag-based list and task management web app optimized for high-volume task management
