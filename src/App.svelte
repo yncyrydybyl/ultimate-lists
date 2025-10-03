@@ -123,6 +123,53 @@
         }
     });
 
+    // import button
+    function importFile() {
+        var input = document.createElement('input');
+        input.type = 'file';
+        input.click();
+
+        input.onchange = file_event => {
+            if (input.files) {
+                var file = input.files[0];
+
+                // read file content
+                var reader = new FileReader();
+                reader.readAsText(file,'UTF-8');
+                reader.onload = readerEvent => {
+                    let content: string = readerEvent.target?.result as string;
+                    let content_json = JSON.parse(content);
+                    console.log(content_json);
+
+                    console.log(content_json.numColumns, content_json.tasks, content_json.tags, content_json.boxes);
+
+                    numColumns = content_json.numColumns;
+                    //$svelteStore.tasks.push(content_json.tasks);
+                    console.log('a', JSON.stringify($svelteStore.tags));
+                    content_json.tags.forEach(tag => {
+                        if ($svelteStore.tags.filter(t => t.name == tag.name).length == 0) {
+                            $svelteStore.tags.push(tag);
+                        }
+                    });
+                    content_json.boxes.forEach(box => {
+                        if ($svelteStore.boxes.filter(b => b.id == box.id).length == 0) {
+                            $svelteStore.boxes.push(box);
+                        }
+                    });
+
+                    content_json.tasks.forEach(task_from_json => {
+                        if ($svelteStore.tasks.filter(t => t.id == task_from_json.id).length == 0) {
+                            let task = createTask(task_from_json.id, task_from_json.boxPositions, task_from_json.tags);
+                            task.title += task_from_json.title;
+                            $svelteStore.tasks.push(task);
+                        }
+                    });
+
+                }
+            }
+        }
+    }
+
     // sort tasks by position inside box with given id
     function sortTasksByPosition(tasks: Task[], boxId: string) {
         return tasks.sort((a: Task,b: Task) => {
@@ -300,7 +347,7 @@
     <p class="subtitle">
     A keyboard-first, tag-based list and task management web app optimized for high-volume task management
     </p>
-    <TagList tags={$svelteStore.tags}/>
+    <TagList tags={$svelteStore.tags}/><button class="button-import" aria-label="Import file" onclick={() => importFile()}>import</button>
     <div id="tasks-wrapper" class="columns">
         {#each Array(numColumns), index}
         <div class="column" data-column-index="{index}">

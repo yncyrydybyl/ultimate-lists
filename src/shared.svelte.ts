@@ -11,6 +11,9 @@ export const localState = $state({
 
 // create SyncedStore store
 const configSyncedStore = syncedStore(SyncedStoreShape);
+
+window.config = configSyncedStore;
+
 const doc = getYjsDoc(configSyncedStore);
 const webrtcProvider = new WebrtcProvider("my-document-id", doc, { password: "smtukvJevTs7Ll3ixftBBaR0aNbfuySlaOf96ZoBm7U=" });
 const indexeddbProvider = new IndexeddbPersistence("my-document-id", doc);

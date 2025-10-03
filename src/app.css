@@ -1,3 +1,7 @@
+.button-import {
+    float: right;
+}
+
 .column {
     padding: .5rem;
     flex-basis: auto;
@@ -16,6 +20,7 @@
 
 .tag-list-wrapper {
     margin-bottom: 2em;
+    display: inline-block;
 }
 
 .tag-list-wrapper input {
