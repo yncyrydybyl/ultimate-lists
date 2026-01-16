@@ -91,7 +91,7 @@
             tick().then(() => {
                 focusTaskTitle(getTaskElById(newTask.id));
             });
-        } else if (event.ctrlKey && ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].includes(event.key)) {
+        } else if ((event.ctrlKey || event.altKey) && ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].includes(event.key)) {
 
             // handle ctr+[0-9] key event
             console.log("ctrl", event.key);
@@ -120,6 +120,8 @@
                     focusTaskTitleByRef(taskRef);
                 }
             });
+
+            event.preventDefault(); // this prevents tab switching using (crtl+[num] or alt+[num] in Firefox)
         }
     });
 
