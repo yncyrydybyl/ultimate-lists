@@ -6,7 +6,7 @@
     import { focusTaskByRef, focusTaskTitle, getBoxIdForTaskEl, getFirstTaskEl, getFocusedTaskElement, getTaskElById, getTaskRef, getTaskTitleFromTaskElement, newTagElement, appendTaskAfterTaskEl, saveNewTagsForTask } from "./helpers.svelte";
     import { onMount, tick } from "svelte";
     import { localState, svelteStore } from "./shared.svelte";
-    let { task, taskTitle = $bindable(), boxId, filteredTagNames } = $props();
+    let { task, taskStatus, taskTitle = $bindable(), boxId, filteredTagNames } = $props();
 
     let taskEl: HTMLElement | undefined = $state();
     let taskTitleEl: HTMLElement | undefined = $state();
@@ -38,7 +38,7 @@
                     checkboxEl.indeterminate = false;
                     break;
             }
-        }
+        };
     }
 
     function getTaskTitleFromEl(taskTitleEl: HTMLElement) {
@@ -183,7 +183,6 @@
 
     onMount(() => {
         // update task element positions (self-healing)
-        console.log("mount");
 
         if (taskEl instanceof HTMLElement) {
             let arr = Array.from((taskEl.closest('.task-list')! as HTMLElement).children);
@@ -199,6 +198,6 @@
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <article bind:this={taskEl} class="task" data-task-id="{task.id}" tabindex="0" draggable="true">
-    <input type="checkbox" {@attach renderTaskStatus(task.status)}><h3 bind:this={taskTitleEl} class="task-title" bind:textContent={ taskTitle } contenteditable onclick={taskTitleClickListener} onkeydown={taskTitleKeyDownListener} onfocusout={taskTitleFocusOutListener}></h3>
+    <input type="checkbox" {@attach renderTaskStatus(taskStatus)}><h3 bind:this={taskTitleEl} class="task-title" bind:textContent={ taskTitle } contenteditable onclick={taskTitleClickListener} onkeydown={taskTitleKeyDownListener} onfocusout={taskTitleFocusOutListener}></h3>
     <div class="tags">{#each filteredTagNames as tagName}<span class="tag" style="background-color: {getColorForTagWithName(tagName)}; color: {pickTextColorBasedOnBackgroundColor(getColorForTagWithName(tagName) || "white")}">{tagName}</span>{/each}</div>
 </article>

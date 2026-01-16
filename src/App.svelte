@@ -285,7 +285,7 @@
             event.preventDefault();
             let newTask = appendTaskInTaskBox(boxId, $svelteStore.boxes);
 
-            // render task title after it has been rendered
+            // focus task title after it has been rendered
             tick().then(() => {
                 focusTaskTitle(getTaskElById(newTask.id));
             });
@@ -371,7 +371,7 @@
                             task.tags.length == 0 || // task has no tags
                             !$svelteStore.boxes.some(otherBox => 'default' != otherBox.id && otherBox.tags.length > 0 && otherBox.tags.every(boxTag => task.tags.includes(boxTag))) // no other box exists that contains the task's tags
                         ), 'default') as task}
-                        <TaskEl {task} bind:taskTitle={task.title} boxId={box.id} filteredTagNames={task.tags} />
+                        <TaskEl {task} taskStatus={task.status} bind:taskTitle={task.title} boxId={box.id} filteredTagNames={task.tags} />
                     {/each}
                     {:else}
                     {#each sortTasksByPosition($svelteStore.tasks.filter(task =>
@@ -380,7 +380,7 @@
                             box.tags.every(boxTag => task.tags.includes(boxTag)) && // the task's tags must include every tag of the box
                             !$svelteStore.boxes.some(otherBox => box.id != otherBox.id && otherBox.tags.every(boxTag => task.tags.includes(boxTag)) && box.tags.every(boxTag => otherBox.tags.includes(boxTag)) && !otherBox.tags.every(otherBoxTag => box.tags.includes(otherBoxTag))) // no other box exists that contains the task's tags AND contains the same but strictly more tags than the box in question
                         ), box.id) as task}
-                        <TaskEl {task} bind:taskTitle={task.title} boxId={box.id} filteredTagNames={task.tags.filter(t => box.tags.indexOf(t) == -1 )} />
+                        <TaskEl {task} taskStatus={task.status} bind:taskTitle={task.title} boxId={box.id} filteredTagNames={task.tags.filter(t => box.tags.indexOf(t) == -1 )} />
                     {/each}
                     {/if}
                 </section>
