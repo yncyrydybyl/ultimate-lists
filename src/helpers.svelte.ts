@@ -291,6 +291,85 @@ export function focusTaskAboveFocusedTaskOrLastTask() {
     }
 }
 
+function getTaskElRightToFocusedTask(): Result<HTMLElement> {
+    const focusedTaskEl = getFocusedTaskElement();
+    if (!focusedTaskEl.success) {
+        return Err(focusedTaskEl.error);
+    }
+
+    let thisColumnEl = focusedTaskEl.value.closest('.column')!;
+    let nextColumnEl = focusedTaskEl.value.closest('.column')!.nextElementSibling;
+    let focusedTaskElIndexInCoumn = Array.from(thisColumnEl.querySelectorAll('.task')).indexOf(focusedTaskEl.value);
+
+    // find next column that contains tasks (skip columns without tasks)
+    while (!nextColumnEl?.querySelector('.task')) {
+        nextColumnEl = nextColumnEl!.nextElementSibling;
+        if (nextColumnEl == null) {
+            // if no next column, proceed with first column
+            nextColumnEl = document.querySelector('.column');
+        }
+    }
+
+    // select task by index in next column
+    let nextColumnTaskEls = Array.from(nextColumnEl!.querySelectorAll('.task'));
+    let nextColumnTaskEl = nextColumnTaskEls[(focusedTaskElIndexInCoumn < nextColumnTaskEls.length)? focusedTaskElIndexInCoumn : nextColumnTaskEls.length - 1];
+
+    if (nextColumnTaskEl instanceof HTMLElement) {
+        return Ok(nextColumnTaskEl);
+    }
+
+    return Err(new Error("no task right to focused task found"));
+}
+
+export function focusTaskRightToFocusedTask() {
+    const taskRightToFocusedTask = getTaskElRightToFocusedTask();
+    if (taskRightToFocusedTask.success) {
+        taskRightToFocusedTask.value.focus();
+    } else {
+        throw new Error("unexpected error");
+    }
+}
+
+function getTaskElLeftToFocusedTask(): Result<HTMLElement> {
+    const focusedTaskEl = getFocusedTaskElement();
+    if (!focusedTaskEl.success) {
+        return Err(focusedTaskEl.error);
+    }
+
+    let thisColumnEl = focusedTaskEl.value.closest('.column')!;
+    let prevColumnEl = focusedTaskEl.value.closest('.column')!.previousElementSibling;
+    let focusedTaskElIndexInCoumn = Array.from(thisColumnEl.querySelectorAll('.task')).indexOf(focusedTaskEl.value);
+
+    // if no previous column, proceed with last column
+    if (prevColumnEl == null) {
+        prevColumnEl = document.querySelector('.column:last-of-type');
+    }
+
+    // find previous column that contains tasks (skip columns without tasks)
+    while (!prevColumnEl?.querySelector('.task')) {
+        prevColumnEl = prevColumnEl!.previousElementSibling;
+    }
+
+    // select task by index in previous column
+    let prevColumnTaskEls = Array.from(prevColumnEl!.querySelectorAll('.task'));
+    let prevColumnTaskEl = prevColumnTaskEls[(focusedTaskElIndexInCoumn < prevColumnTaskEls.length)? focusedTaskElIndexInCoumn : prevColumnTaskEls.length - 1];
+
+    if (prevColumnTaskEl instanceof HTMLElement) {
+        return Ok(prevColumnTaskEl);
+    }
+
+    return Err(new Error("no task right to focused task found"));
+}
+
+export function focusTaskLeftToFocusedTask() {
+    const taskLeftToFocusedTask = getTaskElLeftToFocusedTask();
+    if (taskLeftToFocusedTask.success) {
+        taskLeftToFocusedTask.value.focus();
+    } else {
+        throw new Error("unexpected error");
+    }
+}
+
 // get re-render-safe reference to specific task in specific box
 export function getTaskRef(taskEl: HTMLElement): TaskRef {
     return {

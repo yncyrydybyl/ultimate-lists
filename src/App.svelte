@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { BoxPositions, Task, Box } from "./types";
-    import { createTaskInTaskBox, getBoxWithId, getTaskByTaskId, appendTaskAfterTaskEl, focusTaskBelowFocusedTaskOrFirstTask, focusTaskAboveFocusedTaskOrLastTask, focusTaskByRef, focusTaskTitle, focusTaskTitleByRef, getFocusedTaskElement, getTaskElById, getTaskIdForTaskElement, getTaskRef, toggleTaskStatus, createTask, getBoxIdForTaskEl, getBoxPositionForTaskEl, getTaskElAboveFocusedTask, getTaskElBelowFocusedTask, toggleTagForTaskId, getTaskListElById } from "./helpers.svelte"
+    import { createTaskInTaskBox, getBoxWithId, getTaskByTaskId, appendTaskAfterTaskEl, focusTaskBelowFocusedTaskOrFirstTask, focusTaskAboveFocusedTaskOrLastTask, focusTaskByRef, focusTaskTitle, focusTaskTitleByRef, getFocusedTaskElement, getTaskElById, getTaskIdForTaskElement, getTaskRef, toggleTaskStatus, createTask, getBoxIdForTaskEl, getBoxPositionForTaskEl, getTaskElAboveFocusedTask, getTaskElBelowFocusedTask, toggleTagForTaskId, getTaskListElById, focusTaskRightToFocusedTask, focusTaskLeftToFocusedTask } from "./helpers.svelte"
     import { pickTextColorBasedOnBackgroundColor } from "./utils";
     import TagList from "./TagList.svelte";
     import TaskEl from "./TaskEl.svelte";
@@ -37,6 +37,24 @@
             }
 
             focusTaskAboveFocusedTaskOrLastTask();
+        } else if (localState.mode == 'v' && (event.key == 'l' || event.key == 'ArrowRight')) {
+            event.preventDefault(); // prevent scrolling (arrow keys)
+
+            // handle l event
+            if (event.target instanceof HTMLInputElement) {
+                return;
+            }
+
+            focusTaskRightToFocusedTask();
+        } else if (localState.mode == 'v' && (event.key == 'h' || event.key == 'ArrowLeft')) {
+            event.preventDefault(); // prevent scrolling (arrow keys)
+
+            // handle h event
+            if (event.target instanceof HTMLInputElement) {
+                return;
+            }
+
+            focusTaskLeftToFocusedTask();
         } else if (localState.mode == 'v' && event.key == "K") {
 
             // move task up
