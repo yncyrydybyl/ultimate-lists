@@ -19,7 +19,9 @@
 
     // handle global key events
     window.addEventListener('keydown', (event: KeyboardEvent) => {
-        if (localState.mode == 'v' && !event.altKey && (event.key == "j" || event.key == "ArrowDown")) {
+        console.log(event.shiftKey, event.key);
+
+        if (localState.mode == 'v' && !event.shiftKey && !event.altKey && (event.key == "j" || event.key == "ArrowDown")) {
             event.preventDefault(); // prevent scrolling (arrow keys)
 
             // handle j event
@@ -28,7 +30,7 @@
             }
 
             focusTaskBelowFocusedTaskOrFirstTask();
-        } else if (localState.mode == 'v' && !event.altKey && (event.key == 'k' || event.key == 'ArrowUp')) {
+        } else if (localState.mode == 'v' && !event.shiftKey && !event.altKey && (event.key == 'k' || event.key == 'ArrowUp')) {
             event.preventDefault(); // prevent scrolling (arrow keys)
 
             // handle k event
@@ -37,7 +39,7 @@
             }
 
             focusTaskAboveFocusedTaskOrLastTask();
-        } else if (localState.mode == 'v' && !event.altKey && (event.key == 'l' || event.key == 'ArrowRight')) {
+        } else if (localState.mode == 'v' && !event.shiftKey && !event.altKey && (event.key == 'l' || event.key == 'ArrowRight')) {
             event.preventDefault(); // prevent scrolling (arrow keys)
 
             // handle l event
@@ -46,7 +48,7 @@
             }
 
             focusTaskRightToFocusedTask();
-        } else if (localState.mode == 'v' && !event.altKey && (event.key == 'h' || event.key == 'ArrowLeft')) {
+        } else if (localState.mode == 'v' && !event.shiftKey && !event.altKey && (event.key == 'h' || event.key == 'ArrowLeft')) {
             event.preventDefault(); // prevent scrolling (arrow keys)
 
             // handle h event
@@ -55,11 +57,11 @@
             }
 
             focusTaskLeftToFocusedTask();
-        } else if (localState.mode == 'v' && (event.key == "K" || (event.altKey && event.key == "k"))) {
+        } else if (localState.mode == 'v' && (event.shiftKey || event.altKey) && (event.key == "k" || event.key == 'K' || event.key == 'ArrowUp')) {
 
             // move task up
             moveFocusedTaskUp();
-        } else if (localState.mode == 'v' && (event.key == "J" || (event.altKey && event.key == "j"))) {
+        } else if (localState.mode == 'v' && (event.shiftKey || event.altKey) && (event.key == "j" || event.key == "J" || event.key == 'ArrowDown')) {
 
             // move task down
             moveFocusedTaskDown();
