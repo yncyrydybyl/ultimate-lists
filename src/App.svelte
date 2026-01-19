@@ -19,10 +19,22 @@
 
     // handle global key events
     window.addEventListener('keydown', (event: KeyboardEvent) => {
-        console.log(event.shiftKey, event.key);
+        if (['i', 'd'].includes(localState.mode) && event.key == "Escape") {
+            // return to view mode
+            localState.mode = 'v';
 
-        if (localState.mode == 'v' && !event.shiftKey && !event.altKey && (event.key == "j" || event.key == "ArrowDown")) {
+            // remove delte class from focused task
+            let taskEl = getFocusedTaskElement();
+
+            if (taskEl.success) {
+                taskEl.value.classList.remove('delete-preview');
+            }
+
+        } else if (['v', 'd'].includes(localState.mode) && !event.shiftKey && !event.altKey && (event.key == "j" || event.key == "ArrowDown")) {
             event.preventDefault(); // prevent scrolling (arrow keys)
+
+            // return to view mode
+            localState.mode = 'v';
 
             // handle j event
             if (event.target instanceof HTMLInputElement) {
@@ -30,8 +42,11 @@
             }
 
             focusTaskBelowFocusedTaskOrFirstTask();
-        } else if (localState.mode == 'v' && !event.shiftKey && !event.altKey && (event.key == 'k' || event.key == 'ArrowUp')) {
+        } else if (['v', 'd'].includes(localState.mode) && !event.shiftKey && !event.altKey && (event.key == 'k' || event.key == 'ArrowUp')) {
             event.preventDefault(); // prevent scrolling (arrow keys)
+
+            // return to view mode
+            localState.mode = 'v';
 
             // handle k event
             if (event.target instanceof HTMLInputElement) {
@@ -39,8 +54,11 @@
             }
 
             focusTaskAboveFocusedTaskOrLastTask();
-        } else if (localState.mode == 'v' && !event.shiftKey && !event.altKey && (event.key == 'l' || event.key == 'ArrowRight')) {
+        } else if (['v', 'd'].includes(localState.mode) && !event.shiftKey && !event.altKey && (event.key == 'l' || event.key == 'ArrowRight')) {
             event.preventDefault(); // prevent scrolling (arrow keys)
+
+            // return to view mode
+            localState.mode = 'v';
 
             // handle l event
             if (event.target instanceof HTMLInputElement) {
@@ -48,8 +66,11 @@
             }
 
             focusTaskRightToFocusedTask();
-        } else if (localState.mode == 'v' && !event.shiftKey && !event.altKey && (event.key == 'h' || event.key == 'ArrowLeft')) {
+        } else if (['v', 'd'].includes(localState.mode) && !event.shiftKey && !event.altKey && (event.key == 'h' || event.key == 'ArrowLeft')) {
             event.preventDefault(); // prevent scrolling (arrow keys)
+
+            // return to view mode
+            localState.mode = 'v';
 
             // handle h event
             if (event.target instanceof HTMLInputElement) {
@@ -65,7 +86,7 @@
 
             // move task down
             moveFocusedTaskDown();
-        } else if (localState.mode == 'v' && event.key == "i") {
+        } else if (localState.mode != 'i' && event.key == "i") {
 
             // handle i event
             if (event.target instanceof HTMLInputElement) {
@@ -111,6 +132,28 @@
             tick().then(() => {
                 focusTaskTitle(getTaskElById(newTask.id));
             });
+
+        } else if (localState.mode == 'v' && (event.key == 'd' || event.key == "Delete")) {
+            // switch to delete mode
+            localState.mode = 'd';
+
+            let taskEl = getFocusedTaskElement();
+            if (taskEl.success) taskEl.value.classList.add('delete-preview');
+
+        } else if (localState.mode == 'd' && (event.key == 'd' || event.key == "Delete")) {
+            let taskEl = getFocusedTaskElement();
+            if (taskEl.success) {
+                // delete task
+                let taskId = getTaskIdForTaskElement(taskEl.value);
+                let task = getTaskByTaskId(taskId, $svelteStore.tasks);
+                if (!task.success) return;
+                $svelteStore.tasks.splice($svelteStore.tasks.indexOf(task.value), 1);
+
+                // return to view mode
+                localState.mode = 'v';
+                focusTaskAboveFocusedTaskOrLastTask();
+            }
+
         } else if ((event.ctrlKey || event.altKey) && ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].includes(event.key)) {
 
             // handle ctr+[0-9] key event

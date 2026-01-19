@@ -130,6 +130,13 @@
         }
     }
 
+    function taskFocusOutListener(event: FocusEvent) {
+        if (!event.target) {
+            throw new Error("task element unexpectedly null on focusout");
+        }
+        (event.target as HTMLElement).classList?.remove('delete-preview');
+    }
+
     function taskTitleFocusListener(event: FocusEvent) {
         if (!event.target) {
             throw new Error("task title element unexpectedly null on focus");
@@ -197,7 +204,7 @@
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-<article bind:this={taskEl} class="task" data-task-id="{task.id}" tabindex="0" draggable="true">
+<article bind:this={taskEl} class="task" data-task-id="{task.id}" tabindex="0" draggable="true" onfocusout={taskFocusOutListener}>
     <input type="checkbox" {@attach renderTaskStatus(taskStatus)}><h3 bind:this={taskTitleEl} class="task-title" bind:textContent={ taskTitle } contenteditable onclick={taskTitleClickListener} onkeydown={taskTitleKeyDownListener} onfocusout={taskTitleFocusOutListener}></h3>
     <div class="tags">{#each filteredTagNames as tagName}<span class="tag" style="background-color: {getColorForTagWithName(tagName)}; color: {pickTextColorBasedOnBackgroundColor(getColorForTagWithName(tagName) || "white")}">{tagName}</span>{/each}</div>
 </article>
