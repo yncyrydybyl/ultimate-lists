@@ -1,0 +1,6 @@
+apiVersion: v2
+name: marcade
+version: 0.1.0
+appVersion: "2026.07.29"
+description: Marcade public static SPA (Matrix widget playground) served by nginx-unprivileged on the Datanauten Astra OpenShift cluster. Templates the on-cluster image build (BuildConfig + ImageStream) plus the runtime Deployment, Service and cert-manager-annotated Route.
+type: application

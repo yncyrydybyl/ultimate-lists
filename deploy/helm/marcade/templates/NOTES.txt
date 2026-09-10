@@ -1,0 +1,15 @@
+Marcade deployed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+Next steps:
+
+1. Build & push the image on-cluster (from the app repo root, with a fresh dist/):
+
+   # Stage a minimal Docker build context (Dockerfile + nginx/ + dist/):
+   oc start-build {{ include "marcade.fullname" . }} \
+     --from-dir=deploy/build-context --follow -n {{ .Release.Namespace }}
+
+   The ImageChange trigger then rolls the Deployment to the new digest.
+
+2. Verify:
+   oc get deploy,route,cert,pods -n {{ .Release.Namespace }}
+   curl -sI https://{{ .Values.route.host }}/

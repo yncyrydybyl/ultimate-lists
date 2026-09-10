@@ -1,21 +1,28 @@
 <script lang="ts">
     import type { BoxPositions, Task, Box } from "./types";
-    import { createTaskInTaskBox, getBoxWithId, getTaskByTaskId, appendTaskAfterTaskEl, focusTaskBelowFocusedTaskOrFirstTask, focusTaskAboveFocusedTaskOrLastTask, focusTaskByRef, focusTaskTitle, focusTaskTitleByRef, getFocusedTaskElement, getTaskElById, getTaskIdForTaskElement, getTaskRef, toggleTaskStatus, createTask, getBoxIdForTaskEl, getBoxPositionForTaskEl, getTaskElAboveFocusedTask, getTaskElBelowFocusedTask, toggleTagForTaskId, getTaskListElById, focusTaskRightToFocusedTask, focusTaskLeftToFocusedTask } from "./helpers.svelte"
-    import { pickTextColorBasedOnBackgroundColor } from "./utils";
+    import { createTaskInTaskBox, getBoxWithId, getTaskByTaskId, appendTaskAfterTaskEl, focusTaskBelowFocusedTaskOrFirstTask, focusTaskAboveFocusedTaskOrLastTask, focusTaskByRef, focusTaskTitle, focusTaskTitleByRef, getFocusedTaskElement, getTaskElById, getTaskIdForTaskElement, getTaskRef, toggleTaskStatus, getBoxIdForTaskEl, getBoxPositionForTaskEl, getTaskElAboveFocusedTask, getTaskElBelowFocusedTask, toggleTagForTaskId, getTaskListElById, focusTaskRightToFocusedTask, focusTaskLeftToFocusedTask } from "./helpers.svelte"
+    import { pickTextColorBasedOnBackgroundColor, safeColor, DEFAULT_TAG_COLOR } from "./utils";
+    import { sanitizeTag, sanitizeBox, sanitizeTask, MAX_COLUMNS, MAX_TAGS, MAX_BOXES, MAX_TASKS, MAX_IMPORT_BYTES } from "./validate";
     import TagList from "./TagList.svelte";
+    import SyncStatus from "./SyncStatus.svelte";
     import TaskEl from "./TaskEl.svelte";
     import { tick } from "svelte";
-    import { localState, svelteStore } from "./shared.svelte";
-
-    // write svelteStore to localStorage
-    let stringifiedConfig = $derived(JSON.stringify($svelteStore));
-    $effect(() => {
-        console.log("writing to localStorage (for backup reasons only)...");
-        localStorage.setItem('ultimateLists.config', stringifiedConfig);
-    });
+    import { localState, svelteStore, transact } from "./shared.svelte";
 
     let boxIdOfFocusedNewTagInput = $state("");
-    let numColumns = $derived($svelteStore.boxes.reduce((max, box) => Math.max(max, box.columnIndex || 0), 0) + 1);
+    let importError = $state("");
+
+    // columnIndex is untrusted: it comes from imported files and, once the
+    // document is shared through a Matrix room, from any room member. An
+    // unclamped value here becomes Array(numColumns) below - a value like
+    // 1e9 hangs the tab, and a non-integer throws RangeError during render.
+    let numColumns = $derived(Math.min(
+        MAX_COLUMNS,
+        Math.max(1, $svelteStore.boxes.reduce((max, box) => {
+            const idx = Number(box.columnIndex);
+            return Number.isInteger(idx) && idx > max && idx < MAX_COLUMNS ? idx : max;
+        }, 0) + 1)
+    ));
 
     // handle global key events
     window.addEventListener('keydown', (event: KeyboardEvent) => {
@@ -195,54 +202,94 @@
         input.click();
 
         input.onchange = file_event => {
-            if (input.files) {
-                var file = input.files[0];
+            if (!input.files || input.files.length === 0) return;
+            const file = input.files[0];
 
-                // read file content
-                var reader = new FileReader();
-                reader.readAsText(file,'UTF-8');
-                reader.onload = readerEvent => {
-                    let content: string = readerEvent.target?.result as string;
-                    let content_json = JSON.parse(content);
-                    console.log(content_json);
+            if (file.size > MAX_IMPORT_BYTES) {
+                importError = `File is too large (limit ${Math.round(MAX_IMPORT_BYTES / 1024 / 1024)} MB).`;
+                return;
+            }
 
-                    console.log(content_json.numColumns, content_json.tasks, content_json.tags, content_json.boxes);
+            const reader = new FileReader();
+            reader.onerror = () => { importError = "Could not read that file."; };
+            reader.onload = readerEvent => {
+                try {
+                    applyImport(JSON.parse(readerEvent.target?.result as string));
+                    importError = "";
+                } catch (err) {
+                    importError = "That file is not a valid ultimate-lists export.";
+                    console.warn("import failed", err);
+                }
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+    }
 
-                    numColumns = content_json.numColumns;
-                    //$svelteStore.tasks.push(content_json.tasks);
-                    console.log('a', JSON.stringify($svelteStore.tags));
-                    content_json.tags.forEach(tag => {
-                        if ($svelteStore.tags.filter(t => t.name == tag.name).length == 0) {
-                            $svelteStore.tags.push(tag);
-                        }
-                    });
-                    content_json.boxes.forEach(box => {
-                        if ($svelteStore.boxes.filter(b => b.id == box.id).length == 0) {
-                            $svelteStore.boxes.push(box);
-                        }
-                    });
+    // Merge an imported document. Every entity is sanitized: an import is
+    // untrusted input, and once the list is shared through a Matrix room a bad
+    // import poisons the document for everyone in it.
+    function applyImport(parsed: unknown) {
+        if (typeof parsed !== 'object' || parsed === null) throw new Error("expected an object");
+        const doc = parsed as Record<string, unknown>;
 
-                    content_json.tasks.forEach(task_from_json => {
-                        if ($svelteStore.tasks.filter(t => t.id == task_from_json.id).length == 0) {
-                            let task = createTask(task_from_json.id, task_from_json.boxPositions, task_from_json.tags);
-                            task.title += task_from_json.title;
-                            $svelteStore.tasks.push(task);
-                        }
-                    });
+        const existingTagNames = new Set($svelteStore.tags.map(t => t.name));
+        const existingBoxIds = new Set($svelteStore.boxes.map(b => b.id));
+        const existingTaskIds = new Set($svelteStore.tasks.map(t => t.id));
 
+        if (Array.isArray(doc.tags)) {
+            for (const raw of doc.tags) {
+                if ($svelteStore.tags.length >= MAX_TAGS) break;
+                const tag = sanitizeTag(raw);
+                if (tag && !existingTagNames.has(tag.name)) {
+                    existingTagNames.add(tag.name);
+                    $svelteStore.tags.push(tag);
+                }
+            }
+        }
+
+        if (Array.isArray(doc.boxes)) {
+            for (const raw of doc.boxes) {
+                if ($svelteStore.boxes.length >= MAX_BOXES) break;
+                const box = sanitizeBox(raw);
+                if (box && !existingBoxIds.has(box.id)) {
+                    existingBoxIds.add(box.id);
+                    $svelteStore.boxes.push(box);
+                }
+            }
+        }
+
+        if (Array.isArray(doc.tasks)) {
+            for (const raw of doc.tasks) {
+                if ($svelteStore.tasks.length >= MAX_TASKS) break;
+                const task = sanitizeTask(raw);
+                if (task && !existingTaskIds.has(task.id)) {
+                    existingTaskIds.add(task.id);
+                    $svelteStore.tasks.push(task);
                 }
             }
         }
     }
 
-    // sort tasks by position inside box with given id
+    // Sort tasks by position inside the box with the given id.
+    //
+    // This must be a *total* order: the previous comparator returned 1 for both
+    // (a,b) and (b,a) when neither task had a position, so different engines and
+    // insertion orders produced different orderings on different clients. Once
+    // the document is shared that divergence is self-reinforcing, because
+    // TaskEl's self-healing onMount writes the DOM order back into the document
+    // and two clients would rewrite each other's positions forever.
     function sortTasksByPosition(tasks: Task[], boxId: string) {
-        return tasks.sort((a: Task,b: Task) => {
-            if (!a.boxPositions) return 1;
-            if (!b.boxPositions) return -1;
-            if (a.boxPositions[boxId] === undefined) return 1;
-            if (b.boxPositions[boxId] === undefined) return -1;
-            return a.boxPositions[boxId] - b.boxPositions[boxId];
+        return tasks.sort((a: Task, b: Task) => {
+            const pa = a.boxPositions?.[boxId];
+            const pb = b.boxPositions?.[boxId];
+
+            const aHas = typeof pa === 'number' && Number.isFinite(pa);
+            const bHas = typeof pb === 'number' && Number.isFinite(pb);
+
+            if (aHas && bHas && pa !== pb) return pa - pb;
+            if (aHas !== bHas) return aHas ? -1 : 1; // positioned tasks first
+            // deterministic tiebreak so every client agrees
+            return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
         });
     }
 
@@ -261,12 +308,17 @@
         return newTask;
     }
 
-    function getTagColor(tagName: string) {
-        for (let tag of $svelteStore.tags) {
-            if (tag.name == tagName && tag.color) {
-                return tag.color;
-            }
+    // Indexed once per tags change rather than linear-scanned per tag per render.
+    const tagColorByName = $derived.by(() => {
+        const m = new Map<string, string>();
+        for (const tag of $svelteStore.tags) {
+            if (tag.color && !m.has(tag.name)) m.set(tag.name, tag.color);
         }
+        return m;
+    });
+
+    function getTagColor(tagName: string) {
+        return tagColorByName.get(tagName);
     }
 
     function getBoxesInColumn(columnIndex: number) {
@@ -382,15 +434,18 @@
         if (focusedTask != null && taskEl && getBoxIdForTaskEl(focusedTask) == getBoxIdForTaskEl(taskEl)) {
             const taskRef = getTaskRef(focusedTask);
 
-            for (let task of $svelteStore.tasks) {
-                if (task.id == getTaskIdForTaskElement(focusedTask)) {
-                    if (!task.boxPositions) task["boxPositions"] = {};
-                    task.boxPositions[getBoxIdForTaskEl(focusedTask)] = getBoxPositionForTaskEl(taskEl);
-                } else if (task.id == getTaskIdForTaskElement(taskEl)) {
-                    if (!task.boxPositions) task["boxPositions"] = {};
-                    task.boxPositions[getBoxIdForTaskEl(focusedTask)] = getBoxPositionForTaskEl(focusedTask as HTMLElement);
+            // both position writes belong to one gesture, so one Yjs update
+            transact(() => {
+                for (let task of $svelteStore.tasks) {
+                    if (task.id == getTaskIdForTaskElement(focusedTask)) {
+                        if (!task.boxPositions) task["boxPositions"] = {};
+                        task.boxPositions[getBoxIdForTaskEl(focusedTask)] = getBoxPositionForTaskEl(taskEl);
+                    } else if (task.id == getTaskIdForTaskElement(taskEl)) {
+                        if (!task.boxPositions) task["boxPositions"] = {};
+                        task.boxPositions[getBoxIdForTaskEl(focusedTask)] = getBoxPositionForTaskEl(focusedTask as HTMLElement);
+                    }
                 }
-            }
+            });
 
             tick().then(() => {
                 focusTaskByRef(taskRef);
@@ -404,6 +459,8 @@
         createBoxInColumn($svelteStore.config.numColumns - 1);
     }
 </script>
+
+<SyncStatus />
 
 <section class="section">
     <h1 class="title">
@@ -421,7 +478,7 @@
                 <h2 class="task-box-heading">
                     {box.name}
                     {#each box.tags as tagName}
-                    <span class="tag" data-tag-name="{tagName}" style="background-color: {getTagColor(tagName)}; color: {pickTextColorBasedOnBackgroundColor(getTagColor(tagName) || "white")}">
+                    <span class="tag" data-tag-name="{tagName}" style:background-color={safeColor(getTagColor(tagName))} style:color={pickTextColorBasedOnBackgroundColor(getTagColor(tagName) ?? DEFAULT_TAG_COLOR)}>
                         {tagName}
                         <button class="delete is-small" aria-label="delete" onclick={() => removeTagFromBox(tagName, box.id)}></button>
                     </span>

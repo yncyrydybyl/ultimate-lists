@@ -1,0 +1,26 @@
+# ultimate-lists — values for the shared `marcade` chart.
+#
+# Deployed as a Helm release in the `marcade` namespace alongside marcade,
+# marcade-store and matrix-search-widget, per ADR-0002 ("a future static site is
+# a new values.yaml"). Client-side apply only:
+#
+#   helm upgrade --install ultimate-lists deploy/helm/marcade \
+#     -f deploy/helm/values.yaml -n marcade --server-side=false
+
+nameOverride: ultimate-lists
+fullnameOverride: ultimate-lists
+
+image:
+  repository: image-registry.openshift-image-registry.svc:5000/marcade/ultimate-lists
+
+route:
+  host: ultimate-lists.marcade.datanauten.de
+
+# A ~300 KB static bundle: the same shape as matrix-search-widget, not marcade
+# (which carries a 33 MiB wasm payload).
+resources:
+  limits:
+    memory: 64Mi
+  requests:
+    cpu: 10m
+    memory: 16Mi

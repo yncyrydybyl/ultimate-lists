@@ -1,6 +1,7 @@
 import { SyncedText } from "@syncedstore/core";
 import type { Box, BoxPositions, Task, TaskRef } from "./types";
 import { TaskStatus } from "./types";
+import { transact } from "./shared.svelte";
 
 // ----- Result helper functions -----
 
@@ -109,20 +110,25 @@ export function appendTaskAfterTaskEl(taskEl: HTMLElement, boxes: Array<Box>, ta
     // create task
     const newTask = createTaskInTaskBox(taskBox.value, position);
 
-    // update box position of tasks below
-    let taskBelow = taskEl;
-    while (taskBelow.nextElementSibling && taskBelow.nextElementSibling instanceof HTMLElement) {
-        taskBelow = taskBelow.nextElementSibling;
-        let task = getTaskByTaskId(getTaskIdForTaskElement(taskBelow), tasks);
-        if (task.success) {
-            if (!task.value.boxPositions) task.value.boxPositions = {};
-            task.value.boxPositions[boxId] = ++position;
+    // One transaction for the whole gesture. This rewrites boxPositions for
+    // every task below the insertion point; without the transaction each of
+    // those is a separate Yjs update and therefore a separate Matrix event.
+    return transact(() => {
+        // update box position of tasks below
+        let taskBelow = taskEl;
+        while (taskBelow.nextElementSibling && taskBelow.nextElementSibling instanceof HTMLElement) {
+            taskBelow = taskBelow.nextElementSibling;
+            let task = getTaskByTaskId(getTaskIdForTaskElement(taskBelow), tasks);
+            if (task.success) {
+                if (!task.value.boxPositions) task.value.boxPositions = {};
+                task.value.boxPositions[boxId] = ++position;
+            }
         }
-    }
 
-    // add new task
-    tasks.push(newTask);
-    return newTask;
+        // add new task
+        tasks.push(newTask);
+        return newTask;
+    });
 }
 
 

@@ -2,7 +2,7 @@
     import type { Attachment } from "svelte/attachments";
     import type { Tag, TaskRef } from "./types";
     import { TaskStatus } from "./types";
-    import { pickTextColorBasedOnBackgroundColor } from "./utils";
+    import { pickTextColorBasedOnBackgroundColor, safeColor, DEFAULT_TAG_COLOR } from "./utils";
     import { focusTaskByRef, focusTaskTitle, getBoxIdForTaskEl, getFirstTaskEl, getFocusedTaskElement, getTaskElById, getTaskRef, getTaskTitleFromTaskElement, newTagElement, appendTaskAfterTaskEl, saveNewTagsForTask } from "./helpers.svelte";
     import { onMount, tick } from "svelte";
     import { localState, svelteStore } from "./shared.svelte";
@@ -11,11 +11,22 @@
     let taskEl: HTMLElement | undefined = $state();
     let taskTitleEl: HTMLElement | undefined = $state();
 
-    function getColorForTagWithName(tagName: string) {
-        const globalTagsWithGivenName = $svelteStore.tags.filter((t: Tag) => t.name == tagName);
-        if (globalTagsWithGivenName.length == 1) {
-            return globalTagsWithGivenName[0].color;
+    // Index tag colours once per tags change instead of running a linear
+    // filter for every tag of every task on every render. Duplicate names
+    // resolve to undefined, matching the previous "exactly one match" rule.
+    const tagColorByName = $derived.by(() => {
+        const seen = new Map<string, string | undefined>();
+        const duplicated = new Set<string>();
+        for (const t of $svelteStore.tags as Tag[]) {
+            if (seen.has(t.name)) duplicated.add(t.name);
+            else seen.set(t.name, t.color);
         }
+        for (const name of duplicated) seen.set(name, undefined);
+        return seen;
+    });
+
+    function getColorForTagWithName(tagName: string) {
+        return tagColorByName.get(tagName);
     }
 
     function renderTaskStatus(taskStatus: TaskStatus): Attachment {
@@ -189,16 +200,22 @@
     }
 
     onMount(() => {
-        // update task element positions (self-healing)
+        // Update task element positions (self-healing).
+        //
+        // Only ever runs for a task that has no recorded position in this box.
+        // It used to rewrite the position whenever it disagreed with the DOM
+        // index, which over a shared room is a feedback loop: every client that
+        // rendered a slightly different order would write its own order back,
+        // and two clients would rewrite each other indefinitely. The document is
+        // the source of truth for ordering; the DOM is not.
+        if (!(taskEl instanceof HTMLElement)) return;
+        if (task.boxPositions?.[boxId] !== undefined) return;
 
-        if (taskEl instanceof HTMLElement) {
-            let arr = Array.from((taskEl.closest('.task-list')! as HTMLElement).children);
-            if (!task.boxPositions) task.boxPositions = {};
-            if (task.boxPositions[boxId] != arr.indexOf(taskEl)) {
-                console.log("diff!", boxId, JSON.stringify(task.title), task.boxPositions[boxId], arr.indexOf(taskEl));
-                task.boxPositions[boxId] = arr.indexOf(taskEl);
-            }
-        }
+        const list = taskEl.closest('.task-list');
+        if (!list) return;
+
+        if (!task.boxPositions) task.boxPositions = {};
+        task.boxPositions[boxId] = Array.from(list.children).indexOf(taskEl);
     });
 
 </script>
@@ -206,5 +223,5 @@
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <article bind:this={taskEl} class="task" data-task-id="{task.id}" tabindex="0" draggable="true" onfocusout={taskFocusOutListener}>
     <input type="checkbox" {@attach renderTaskStatus(taskStatus)}><h3 bind:this={taskTitleEl} class="task-title" bind:textContent={ taskTitle } contenteditable onclick={taskTitleClickListener} onkeydown={taskTitleKeyDownListener} onfocusout={taskTitleFocusOutListener}></h3>
-    <div class="tags">{#each filteredTagNames as tagName}<span class="tag" style="background-color: {getColorForTagWithName(tagName)}; color: {pickTextColorBasedOnBackgroundColor(getColorForTagWithName(tagName) || "white")}">{tagName}</span>{/each}</div>
+    <div class="tags">{#each filteredTagNames as tagName (tagName)}<span class="tag" style:background-color={safeColor(getColorForTagWithName(tagName))} style:color={pickTextColorBasedOnBackgroundColor(getColorForTagWithName(tagName) ?? DEFAULT_TAG_COLOR)}>{tagName}</span>{/each}</div>
 </article>

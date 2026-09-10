@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { ChangeEventHandler } from "svelte/elements";
     import type { Tag } from "./types";
-    import { pickTextColorBasedOnBackgroundColor } from "./utils";
+    import { pickTextColorBasedOnBackgroundColor, cssColorToHex, safeColor, normalizeColor, DEFAULT_TAG_COLOR } from "./utils";
 
     let { tags } = $props();
 
@@ -19,17 +19,15 @@
     }
 
     function setTagColor(tagName: string, color: string) {
+        // never write an unparseable colour into the shared document
+        const normalized = normalizeColor(color);
+        if (normalized === null) return;
+
         for (let [_, tag] of tags.entries()) {
             if (tag.name == tagName) {
-                tag.color = color;
+                tag.color = normalized;
             }
         }
-    }
-
-    function cssColorToHex(cssColor: string): string {
-        var ctx = document.createElement('canvas').getContext('2d');
-        ctx!.fillStyle = cssColor;
-        return ctx!.fillStyle;
     }
 
     /*document.querySelector('#tag-list')!.addEventListener('dragover', event => {
@@ -103,9 +101,9 @@
 
 <section class="tag-list-wrapper">
     <nav id="tag-list" ondragover={e => e.preventDefault()}>
-    {#each tags as tag, index (tag)}
+    {#each tags as tag, index (tag.name)}
     <label class="tag-label" for="color-{tag.name}" draggable="true" ondrag={onTagDrag} ondragover={onTagDragOver} ondragend={onTagDragEnd}>
-        <span class="tag" data-tag-name="{tag.name}" style="background-color: {tag.color}; color: {pickTextColorBasedOnBackgroundColor(tag.color || "white")}">{index+1}: {tag.name} <button class="delete is-small" aria-label="delete" onclick={() => deleteTag(tag.name)}></button></span>
+        <span class="tag" data-tag-name="{tag.name}" style:background-color={safeColor(tag.color)} style:color={pickTextColorBasedOnBackgroundColor(tag.color ?? DEFAULT_TAG_COLOR)}>{index+1}: {tag.name} <button class="delete is-small" aria-label="delete" onclick={() => deleteTag(tag.name)}></button></span>
         <input class="color-input" id="color-{tag.name}" type="color" value="{cssColorToHex(tag.color)}" onchange={onColorInputChange(tag.name)}>
     </label>
     {/each}

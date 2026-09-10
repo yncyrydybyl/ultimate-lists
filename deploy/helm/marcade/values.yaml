@@ -1,0 +1,55 @@
+affinity: {}
+build:
+  dockerfilePath: "Dockerfile"
+  enabled: true
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+fullnameOverride: ""
+image:
+  pullPolicy: "IfNotPresent"
+  repository: "image-registry.openshift-image-registry.svc:5000/marcade/marcade"
+  tag: "latest"
+livenessProbe:
+  httpGet:
+    path: "/healthz"
+    port: "http"
+  initialDelaySeconds: 5
+  periodSeconds: 15
+  timeoutSeconds: 2
+nameOverride: ""
+nodeSelector: {}
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: "RuntimeDefault"
+readinessProbe:
+  httpGet:
+    path: "/healthz"
+    port: "http"
+  initialDelaySeconds: 2
+  periodSeconds: 10
+  timeoutSeconds: 2
+replicaCount: 1
+resources:
+  limits:
+    memory: "192Mi"
+  requests:
+    cpu: "10m"
+    memory: "32Mi"
+route:
+  annotations:
+    cert-manager.io/issuer-kind: "ClusterIssuer"
+    cert-manager.io/issuer-name: "letsencrypt"
+  enabled: true
+  host: "marcade.datanauten.de"
+  tls:
+    insecureEdgeTerminationPolicy: "Redirect"
+    termination: "edge"
+service:
+  port: 8080
+  type: "ClusterIP"
+tolerations: []

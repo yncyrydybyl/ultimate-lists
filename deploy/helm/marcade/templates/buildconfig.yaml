@@ -1,0 +1,25 @@
+{{- if .Values.build.enabled }}
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: {{ include "marcade.fullname" . }}
+  labels:
+    {{- include "marcade.labels" . | nindent 4 }}
+spec:
+  # Binary source: the build context (Dockerfile + nginx/ + fresh dist/) is
+  # uploaded with `oc start-build {{ include "marcade.fullname" . }} --from-dir=<staging> --follow`.
+  source:
+    type: Binary
+    binary: {}
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: {{ .Values.build.dockerfilePath | quote }}
+  output:
+    to:
+      kind: ImageStreamTag
+      name: {{ include "marcade.fullname" . }}:{{ .Values.image.tag }}
+  # No automatic triggers — builds are started explicitly by the operator/CI.
+  triggers: []
+  runPolicy: Serial
+{{- end }}
